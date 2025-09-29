@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国际化测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+        select { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>国际化系统测试</h1>
+
+    <div class="test-section">
+        <h2>语言切换测试</h2>
+        <label>选择语言：</label>
+        <select id="languageSelect">
+            <option value="auto">自动检测</option>
+            <option value="zh-CN">中文</option>
+            <option value="en">英文</option>
+        </select>
+        <br><br>
+
+        <div id="testContent">
+            <h3 data-i18n="popupTitle">ChatGPT Timeline 设置</h3>
+            <p data-i18n="popupDescription">自定义时间线显示和导航选项</p>
+
+            <h4 data-i18n="timelinePosition">进度条显示位置</h4>
+            <label data-i18n="positionRight">右侧</label>
+            <label data-i18n="positionLeft">左侧</label>
+            <label data-i18n="positionTop">顶部</label>
+            <label data-i18n="positionBottom">底部</label>
+
+            <h4 data-i18n="tocNavigation">目录导航</h4>
+            <label data-i18n="enableTOC">启用目录导航</label>
+
+            <h4 data-i18n="languageSelector">语言选择</h4>
+            <p data-i18n="settingsTip">设置将在页面刷新后生效</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>控制台输出</h2>
+        <button onclick="testTranslation()">测试翻译功能</button>
+        <button onclick="showCurrentLanguage()">显示当前语言</button>
+        <div id="consoleOutput"></div>
+    </div>
+
+    <script>
+        // 模拟i18n对象用于测试
+        class MockI18n {
+            constructor() {
+                this.currentLanguage = 'zh-CN';
+                this.languageCache = new Map();
+            }
+
+            async init() {
+                // 加载语言包
+                await this.loadLanguagePack('zh-CN');
+                await this.loadLanguagePack('en');
+            }
+
+            async loadLanguagePack(lang) {
+                if (this.languageCache.has(lang)) {
+                    return this.languageCache.get(lang);
+                }
+
+                try {
+                    const response = await fetch(`extension/_locales/${lang}/messages.json`);
+                    const rawLangPack = await response.json();
+                    // 转换Chrome扩展的消息格式为简单的键值对
+                    const langPack = {};
+                    Object.keys(rawLangPack).forEach(key => {
+                        langPack[key] = rawLangPack[key].message;
+                    });
+                    this.languageCache.set(lang, langPack);
+                    return langPack;
+                } catch (error) {
+                    console.warn(`Failed to load language pack for ${lang}:`, error);
+                    return {};
+                }
+            }
+
+            async t(key) {
+                const langPack = this.languageCache.get(this.currentLanguage) || {};
+                return langPack[key] || key;
+            }
+
+            getCurrentLanguage() {
+                return this.currentLanguage;
+            }
+
+            setLanguage(lang) {
+                this.currentLanguage = lang;
+            }
+
+            onLanguageChange(callback) {
+                // 模拟回调
+            }
+        }
+
+        const i18n = new MockI18n();
+    </script>
+    <script>
+        // 等待i18n初始化完成
+        i18n.init().then(() => {
+            console.log('i18n initialized');
+            initTest();
+        });
+
+        function initTest() {
+            // 初始化翻译
+            updateTranslations();
+
+            // 监听语言变化
+            i18n.onLanguageChange(() => {
+                console.log('Language changed to:', i18n.getCurrentLanguage());
+                updateTranslations();
+            });
+
+            // 语言选择器
+            document.getElementById('languageSelect').addEventListener('change', (e) => {
+                i18n.setLanguage(e.target.value);
+            });
+        }
+
+        async function updateTranslations() {
+            const elements = document.querySelectorAll('[data-i18n]');
+            for (const element of elements) {
+                const key = element.getAttribute('data-i18n');
+                if (key) {
+                    const text = await i18n.t(key);
+                    element.textContent = text;
+                }
+            }
+        }
+
+        async function testTranslation() {
+            const output = document.getElementById('consoleOutput');
+            output.innerHTML = '';
+
+            const testKeys = ['extensionName', 'extensionDescription', 'popupTitle', 'timelinePosition'];
+
+            for (const key of testKeys) {
+                const translation = await i18n.t(key);
+                output.innerHTML += `<p><strong>${key}:</strong> ${translation}</p>`;
+            }
+        }
+
+        function showCurrentLanguage() {
+            const output = document.getElementById('consoleOutput');
+            output.innerHTML = `<p>当前语言: ${i18n.getCurrentLanguage()}</p>`;
+        }
+
+        // 设置语言选择器的初始值
+        document.getElementById('languageSelect').value = i18n.currentLanguage;
+    </script>
+</body>
+</html>

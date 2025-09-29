@@ -1,0 +1,98 @@
+{
+  "extensionName": {
+    "message": "ChatGPT 对话时间线",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "为ChatGPT对话添加导航时间轴，方便快速导航。",
+    "description": "Extension description"
+  },
+  "popupTitle": {
+    "message": "ChatGPT Timeline 设置",
+    "description": "Popup title"
+  },
+  "popupDescription": {
+    "message": "自定义时间线显示和导航选项",
+    "description": "Popup description"
+  },
+  "timelinePosition": {
+    "message": "时间线显示位置",
+    "description": "Timeline position setting"
+  },
+  "positionRight": {
+    "message": "右侧",
+    "description": "Right position"
+  },
+  "positionLeft": {
+    "message": "左侧",
+    "description": "Left position"
+  },
+  "positionTop": {
+    "message": "顶部",
+    "description": "Top position"
+  },
+  "positionBottom": {
+    "message": "底部",
+    "description": "Bottom position"
+  },
+  "enableDragging": {
+    "message": "允许长按拖拽移动",
+    "description": "Enable long press dragging option"
+  },
+  "tocNavigation": {
+    "message": "目录导航",
+    "description": "Table of contents navigation"
+  },
+  "enableTOC": {
+    "message": "启用目录导航",
+    "description": "Enable TOC option"
+  },
+  "tocWidth": {
+    "message": "导航宽度：",
+    "description": "TOC width setting"
+  },
+  "tocPosition": {
+    "message": "导航位置：",
+    "description": "TOC position setting"
+  },
+  "tocPositionLeft": {
+    "message": "时间线左侧",
+    "description": "Left of timeline"
+  },
+  "tocPositionRight": {
+    "message": "时间线右侧",
+    "description": "Right of timeline"
+  },
+  "resetButton": {
+    "message": "重置为默认设置",
+    "description": "Reset button"
+  },
+  "settingsTip": {
+    "message": "设置将在页面刷新后生效",
+    "description": "Settings tip"
+  },
+  "languageSelector": {
+    "message": "语言选择",
+    "description": "Language selector"
+  },
+  "languageAuto": {
+    "message": "自动检测",
+    "description": "Auto detect language"
+  },
+  "languageChinese": {
+    "message": "中文",
+    "description": "Chinese language"
+  },
+  "languageEnglish": {
+    "message": "英文",
+    "description": "English language"
+  },
+  "dragSettings": {
+    "message": "拖拽设置",
+    "description": "Drag settings section"
+  },
+  "dragDescription": {
+    "message": "同时控制时间线和目录导航的长按拖拽功能",
+    "description": "Description for drag settings"
+  }
+}

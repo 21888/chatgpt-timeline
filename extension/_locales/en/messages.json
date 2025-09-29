@@ -1,0 +1,98 @@
+{
+  "extensionName": {
+    "message": "ChatGPT Conversation Timeline",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Adds a navigation timeline to ChatGPT conversations for easy navigation.",
+    "description": "Extension description"
+  },
+  "popupTitle": {
+    "message": "ChatGPT Timeline Settings",
+    "description": "Popup title"
+  },
+  "popupDescription": {
+    "message": "Customize timeline display and navigation options",
+    "description": "Popup description"
+  },
+  "timelinePosition": {
+    "message": "Timeline Display Position",
+    "description": "Timeline position setting"
+  },
+  "positionRight": {
+    "message": "Right",
+    "description": "Right position"
+  },
+  "positionLeft": {
+    "message": "Left",
+    "description": "Left position"
+  },
+  "positionTop": {
+    "message": "Top",
+    "description": "Top position"
+  },
+  "positionBottom": {
+    "message": "Bottom",
+    "description": "Bottom position"
+  },
+  "enableDragging": {
+    "message": "Allow Long Press Dragging",
+    "description": "Enable long press dragging option"
+  },
+  "tocNavigation": {
+    "message": "Table of Contents Navigation",
+    "description": "Table of contents navigation"
+  },
+  "enableTOC": {
+    "message": "Enable TOC Navigation",
+    "description": "Enable TOC option"
+  },
+  "tocWidth": {
+    "message": "Navigation Width:",
+    "description": "TOC width setting"
+  },
+  "tocPosition": {
+    "message": "Navigation Position:",
+    "description": "TOC position setting"
+  },
+  "tocPositionLeft": {
+    "message": "Left of Timeline",
+    "description": "Left of timeline"
+  },
+  "tocPositionRight": {
+    "message": "Right of Timeline",
+    "description": "Right of timeline"
+  },
+  "resetButton": {
+    "message": "Reset to Default Settings",
+    "description": "Reset button"
+  },
+  "settingsTip": {
+    "message": "Settings will take effect after page refresh",
+    "description": "Settings tip"
+  },
+  "languageSelector": {
+    "message": "Language Selection",
+    "description": "Language selector"
+  },
+  "languageAuto": {
+    "message": "Auto Detect",
+    "description": "Auto detect language"
+  },
+  "languageChinese": {
+    "message": "Chinese",
+    "description": "Chinese language"
+  },
+  "languageEnglish": {
+    "message": "English",
+    "description": "English language"
+  },
+  "dragSettings": {
+    "message": "Drag Settings",
+    "description": "Drag settings section"
+  },
+  "dragDescription": {
+    "message": "Controls long press dragging for both timeline and table of contents navigation",
+    "description": "Description for drag settings"
+  }
+}

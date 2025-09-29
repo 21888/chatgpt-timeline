@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Fix Test</title>
+</head>
+<body>
+    <div id="test-container">
+        <h1>Timeline Conversation Container Fix Test</h1>
+        <p>This page tests the fix for finding conversation containers.</p>
+        <button onclick="testFindConversationElements()">Test Find Conversation Elements</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += '<p>' + new Date().toLocaleTimeString() + ': ' + message + '</p>';
+        }
+
+        async function findCriticalElements() {
+            const maxRetries = 3;
+            const retryDelay = 500;
+            let firstTurn = null;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                log(`Finding critical elements, attempt ${attempt}/${maxRetries}`);
+
+                // Try multiple selectors for conversation turns
+                const possibleSelectors = [
+                    'article[data-turn-id]',
+                    '[data-testid="conversation-turn"]',
+                    '.conversation-turn',
+                    'article',
+                    '[data-message-id]',
+                    '.message',
+                    'main [class*="conversation"]',
+                    'main [class*="message"]',
+                    '[data-testid*="message"]',
+                    '[class*="message"]',
+                    '[class*="turn"]',
+                    '[data-testid*="turn"]',
+                    'div[data-testid*="conversation"]',
+                    'div[class*="conversation"]',
+                    'div[class*="chat"]',
+                    'div[data-testid*="chat"]',
+                    'main div[class*="content"]',
+                    'main div[data-testid*="content"]'
+                ];
+                for (const selector of possibleSelectors) {
+                    firstTurn = document.querySelector(selector);
+                    if (firstTurn) {
+                        log(`Found conversation element with selector: ${selector}`);
+                        break;
+                    }
+                }
+
+                // If no specific turn found, try to find any conversation-like content
+                if (!firstTurn) {
+                    const mainContent = document.querySelector('main') ||
+                                      document.querySelector('[role="main"]') ||
+                                      document.querySelector('[class*="main"]') ||
+                                      document.body;
+
+                    const conversationCandidates = mainContent.querySelectorAll('div, section, article');
+                    let bestCandidate = null;
+                    let maxTextLength = 0;
+
+                    conversationCandidates.forEach(candidate => {
+                        const textContent = candidate.textContent || '';
+                        if (textContent.length > maxTextLength &&
+                            (textContent.includes('ChatGPT') || textContent.includes('GPT') ||
+                             textContent.includes('You said') || textContent.includes('user') ||
+                             textContent.length > 100)) {
+                            maxTextLength = textContent.length;
+                            bestCandidate = candidate;
+                        }
+                    });
+
+                    if (bestCandidate) {
+                        firstTurn = bestCandidate;
+                        log('Using conversation-like content area as conversation element');
+                    } else if (mainContent.textContent && mainContent.textContent.length > 100) {
+                        firstTurn = mainContent;
+                        log('Using main content area as conversation element');
+                    }
+                }
+
+                if (firstTurn) {
+                    log(`Successfully found conversation element on attempt ${attempt}`);
+                    log('Element tag: ' + firstTurn.tagName + ', class: ' + firstTurn.className);
+                    return firstTurn;
+                }
+
+                if (attempt < maxRetries) {
+                    log(`No conversation elements found on attempt ${attempt}, waiting before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                }
+            }
+
+            log('No conversation elements found after all retries');
+            return null;
+        }
+
+        async function testFindConversationElements() {
+            log('Testing conversation element detection...');
+
+            const element = await findCriticalElements();
+            if (element) {
+                log('SUCCESS: Found valid conversation element');
+                const container = element.parentElement || element;
+                log('Container is valid DOM element: ' + (container && container.nodeType === Node.ELEMENT_NODE));
+            } else {
+                log('FAILED: Could not find conversation element');
+            }
+        }
+
+        // Auto-run test after page loads
+        window.addEventListener('load', () => {
+            setTimeout(testFindConversationElements, 500);
+        });
+    </script>
+</body>
+</html>
