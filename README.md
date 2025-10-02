@@ -16,6 +16,7 @@ Interactive timeline for ChatGPT conversations - click to navigate, drag to repo
 - ⚙️ **Customizable** position and behavior settings
 - 📋 **Table of Contents** sidebar with message index
 - 🖱️ **Draggable interface** for flexible placement
+- 📐 **Responsive positioning** - TOC panel adapts to window resizing using percentage-based coordinates
 
 ---
 

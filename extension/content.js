@@ -879,7 +879,7 @@ class TimelineManager {
             }
         } catch {}
 
-        // Reposition tooltip on resize
+        // Reposition tooltip and TOC on resize
         this.onWindowResize = () => {
             if (this.ui.tooltip?.classList.contains('visible') && this.ui.timelineBar) {
                 const activeDot = this.ui.timelineBar.querySelector('.timeline-dot:hover, .timeline-dot:focus');
@@ -902,6 +902,12 @@ class TimelineManager {
                     });
                 }
             }
+
+            // Reposition TOC panel based on stored percentage coordinates
+            if (this.settings.enableTOC) {
+                this.restoreTOCPosition();
+            }
+
             // Update long-canvas geometry and virtualization
             if (this.ui.timelineBar) {
                 this.updateTimelineGeometry();
@@ -2590,7 +2596,7 @@ class TimelineManager {
         e.stopPropagation();
     }
 
-    // Save TOC position
+    // Save TOC position as percentage of window size
     saveTOCPosition() {
         try {
             const tocContainer = document.querySelector('.timeline-toc');
@@ -2599,29 +2605,71 @@ class TimelineManager {
             }
 
             const rect = tocContainer.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Convert pixel coordinates to percentage of window size
             const position = {
-                left: rect.left,
-                top: rect.top,
-                width: rect.width,
-                height: rect.height
+                left: (rect.left / windowWidth) * 100,
+                top: (rect.top / windowHeight) * 100,
+                width: (rect.width / windowWidth) * 100,
+                height: (rect.height / windowHeight) * 100,
+                // Store window dimensions for validation
+                windowWidth: windowWidth,
+                windowHeight: windowHeight
             };
+
+            console.log(`[TOC Position] Saved position: ${position.left.toFixed(2)}%, ${position.top.toFixed(2)}% of window ${windowWidth}x${windowHeight}`);
             localStorage.setItem('chatgptTimelineTOCPosition', JSON.stringify(position));
         } catch (error) {
             console.warn('Failed to save TOC position:', error);
         }
     }
 
-    // Restore TOC position
+    // Restore TOC position from percentage coordinates
     restoreTOCPosition() {
         try {
             const saved = localStorage.getItem('chatgptTimelineTOCPosition');
             if (saved) {
                 const position = JSON.parse(saved);
                 const tocContainer = document.querySelector('.timeline-toc');
-                if (tocContainer) {
-                    tocContainer.style.left = `${position.left}px`;
-                    tocContainer.style.top = `${position.top}px`;
+                if (tocContainer && position.left !== undefined && position.top !== undefined) {
+                    // Convert percentage back to pixels based on current window size
+                    const currentWindowWidth = window.innerWidth;
+                    const currentWindowHeight = window.innerHeight;
+
+                    // Check if window dimensions have changed significantly (>10% difference)
+                    const widthDiff = Math.abs(currentWindowWidth - (position.windowWidth || currentWindowWidth)) / currentWindowWidth;
+                    const heightDiff = Math.abs(currentWindowHeight - (position.windowHeight || currentWindowHeight)) / currentWindowHeight;
+
+                    if (widthDiff > 0.1 || heightDiff > 0.1) {
+                        console.log(`[TOC Position] Window size changed significantly (${(widthDiff * 100).toFixed(1)}% width, ${(heightDiff * 100).toFixed(1)}% height), adjusting TOC position`);
+                    }
+
+                    // Convert percentage to pixels and apply boundary constraints
+                    let left = (position.left / 100) * currentWindowWidth;
+                    let top = (position.top / 100) * currentWindowHeight;
+                    const width = (position.width / 100) * currentWindowWidth;
+                    const height = (position.height / 100) * currentWindowHeight;
+
+                    // Apply boundary constraints
+                    const margin = 10;
+                    const maxLeft = currentWindowWidth - width - margin;
+                    const maxTop = currentWindowHeight - height - margin;
+
+                    left = Math.max(margin, Math.min(left, maxLeft));
+                    top = Math.max(margin, Math.min(top, maxTop));
+
+                    tocContainer.style.left = `${left}px`;
+                    tocContainer.style.top = `${top}px`;
                     tocContainer.style.right = 'auto';
+
+                    console.log(`[TOC Position] Restored position: ${left.toFixed(0)}px, ${top.toFixed(0)}px (${position.left.toFixed(2)}%, ${position.top.toFixed(2)}% of ${currentWindowWidth}x${currentWindowHeight})`);
+
+                    // Update stored position with current window dimensions for future use
+                    position.windowWidth = currentWindowWidth;
+                    position.windowHeight = currentWindowHeight;
+                    localStorage.setItem('chatgptTimelineTOCPosition', JSON.stringify(position));
                 }
             }
         } catch (error) {
