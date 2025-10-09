@@ -13,7 +13,7 @@ class TimelineManager {
         this.mutationObserver = null;
         this.resizeObserver = null;
         this.intersectionObserver = null;
-        this.visibleUserTurns = new Set();
+        this.visibleTurns = new Set();
         this.onTimelineBarClick = null;
         this.onScroll = null;
         this.onTimelineBarOver = null;
@@ -126,10 +126,10 @@ class TimelineManager {
             this.collapseTOC();
         }, 100);
 
-        // Set up periodic visibility check
+        // Set up periodic visibility check (reduced frequency since we have better event-driven updates)
         this.tocVisibilityCheckInterval = setInterval(() => {
             this.ensureTOCVisible();
-        }, 5000); // Check every 5 seconds
+        }, 10000); // Check every 10 seconds (reduced from 5 seconds)
     }
 
     perfStart(name) {
@@ -460,6 +460,7 @@ class TimelineManager {
         this.perfStart('recalc');
         if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
+        // Get only user conversation turns (for timeline markers)
         const userTurnElements = this.conversationContainer.querySelectorAll('article[data-turn="user"]');
         // Reset visible window to avoid cleaning with stale indices after rebuild
         this.visibleRange = { start: 0, end: -1 };
@@ -491,15 +492,20 @@ class TimelineManager {
         this.firstUserTurnOffset = firstTurnOffset;
         this.contentSpanPx = contentSpan;
 
-        // Build markers with normalized position along conversation
+        // Build markers with normalized position along conversation (only for user turns)
         this.markers = Array.from(userTurnElements).map(el => {
             const offsetFromStart = el.offsetTop - firstTurnOffset;
             let n = offsetFromStart / contentSpan;
             n = Math.max(0, Math.min(1, n));
+
+            // Get ChatGPT's reply for this user turn
+            const chatgptReply = this.getChatGPTReply(el);
+
             return {
                 id: el.dataset.turnId,
                 element: el,
                 summary: this.normalizeText(el.textContent || ''),
+                chatgptReply: chatgptReply,
                 n,
                 baseN: n,
                 dotElement: null,
@@ -538,6 +544,29 @@ class TimelineManager {
         }
 
         this.perfEnd('recalc');
+    }
+
+    // Get ChatGPT's reply for a given user conversation turn
+    getChatGPTReply(userElement) {
+        // Find the corresponding ChatGPT reply for this user message
+        const allTurns = Array.from(this.conversationContainer.querySelectorAll('article[data-turn-id]'));
+        const currentIndex = allTurns.indexOf(userElement);
+
+        // Look for the next assistant turn (ChatGPT's reply) after this user turn
+        for (let i = currentIndex + 1; i < allTurns.length; i++) {
+            const turn = allTurns[i];
+            if (turn.dataset.turn === 'assistant') {
+                const replyText = this.normalizeText(turn.textContent || '');
+                // Return the reply if it's not empty and not just the incomplete "哈哈，我当然不"
+                if (replyText && replyText.length > 10) { // 确保回复有足够的内容
+                    return replyText;
+                }
+                // If it's the incomplete reply, don't return it
+                break;
+            }
+        }
+
+        return '';
     }
     
     setupObservers() {
@@ -629,9 +658,9 @@ class TimelineManager {
             entries.forEach(entry => {
                 const target = entry.target;
                 if (entry.isIntersecting) {
-                    this.visibleUserTurns.add(target);
+                    this.visibleTurns.add(target);
                 } else {
-                    this.visibleUserTurns.delete(target);
+                    this.visibleTurns.delete(target);
                 }
             });
 
@@ -656,8 +685,16 @@ class TimelineManager {
             // Re-setup observers with new containers
             this.setupObservers();
             
-            // Trigger content recalculation
-            this.debouncedRecalculateAndRender();
+            // Trigger content recalculation immediately for page changes
+            this.recalculateAndRenderMarkers();
+            
+            // Force TOC refresh after page change to ensure it updates properly
+            if (this.settings.enableTOC) {
+                // Use a short delay to ensure markers are updated and DOM is stable
+                setTimeout(() => {
+                    this.forceTOCRefresh();
+                }, 150);
+            }
             
             console.log('Timeline content refreshed successfully');
         } catch (error) {
@@ -718,8 +755,8 @@ class TimelineManager {
         this.intersectionObserver = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 const target = entry.target;
-                if (entry.isIntersecting) { this.visibleUserTurns.add(target); }
-                else { this.visibleUserTurns.delete(target); }
+                if (entry.isIntersecting) { this.visibleTurns.add(target); }
+                else { this.visibleTurns.delete(target); }
             });
             this.scheduleScrollSync();
         }, { root: this.scrollContainer, threshold: 0.1, rootMargin: "-40% 0px -59% 0px" });
@@ -735,18 +772,39 @@ class TimelineManager {
     updateIntersectionObserverTargets() {
         if (!this.intersectionObserver || !this.conversationContainer) return;
         this.intersectionObserver.disconnect();
-        this.visibleUserTurns.clear();
-        const userTurns = this.conversationContainer.querySelectorAll('article[data-turn="user"][data-turn-id]');
-        userTurns.forEach(el => this.intersectionObserver.observe(el));
+        this.visibleTurns.clear();
+        const allTurns = this.conversationContainer.querySelectorAll('article[data-turn-id]');
+        allTurns.forEach(el => this.intersectionObserver.observe(el));
     }
 
     setupEventListeners() {
         // Check if timeline bar exists before setting up event listeners
         if (!this.ui.timelineBar) {
             console.warn('Timeline bar not found, skipping event listener setup');
+            // Try to reinject UI if timeline bar is missing
+            if (this.conversationContainer && document.body) {
+                console.log('Attempting to reinject timeline UI...');
+                try {
+                    this.injectTimelineUI().then(() => {
+                        if (this.ui.timelineBar) {
+                            console.log('Timeline UI reinjected successfully, setting up event listeners');
+                            this.setupEventListenersAfterUIReady();
+                        }
+                    }).catch(err => {
+                        console.error('Failed to reinject timeline UI:', err);
+                    });
+                } catch (err) {
+                    console.error('Error during UI reinjection:', err);
+                }
+            }
             return;
         }
 
+        this.setupEventListenersAfterUIReady();
+    }
+
+    setupEventListenersAfterUIReady() {
+        // Timeline bar click event for dot navigation
         this.onTimelineBarClick = (e) => {
             const dot = e.target.closest('.timeline-dot');
             if (dot) {
@@ -1003,10 +1061,18 @@ class TimelineManager {
 
     debounce(func, delay) {
         let timeout;
-        return (...args) => {
+        const debouncedFn = (...args) => {
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), delay);
         };
+        
+        // Add cancel method to the debounced function
+        debouncedFn.cancel = () => {
+            clearTimeout(timeout);
+            timeout = null;
+        };
+        
+        return debouncedFn;
     }
 
     // Read numeric CSS var from the timeline bar element
@@ -1016,15 +1082,108 @@ class TimelineManager {
         return Number.isFinite(n) ? n : fallback;
     }
 
-    // Normalize whitespace and trim; remove leading "You said:" SR-only prefix; no manual ellipsis
+    // Normalize whitespace and trim; remove leading prefixes; no manual ellipsis
     normalizeText(text) {
         try {
             let s = String(text || '').replace(/\s+/g, ' ').trim();
-            // Strip only if it appears at the very start
+            // Strip common prefixes if they appear at the very start
             s = s.replace(/^\s*(you\s*said\s*[:：]?\s*)/i, '');
+            s = s.replace(/^\s*(chatgpt\s*said\s*[:：]?\s*)/i, '');
+            s = s.replace(/^\s*(chatgpt\s*[:：]?\s*)/i, '');
+            s = s.replace(/^\s*(assistant\s*[:：]?\s*)/i, '');
             return s;
         } catch {
             return '';
+        }
+    }
+
+    // Copy QA text to clipboard
+    async copyQAText(marker) {
+        try {
+            // Get full text content (not truncated)
+            const userText = marker.summary;
+            const chatgptText = marker.chatgptReply || '';
+            
+            // Format as QA text
+            let qaText = `Q: ${userText}`;
+            if (chatgptText) {
+                qaText += `\n\nA: ${chatgptText}`;
+            }
+            
+            // Copy to clipboard
+            await navigator.clipboard.writeText(qaText);
+            
+            // Show feedback
+            this.showCopyFeedback();
+            
+        } catch (error) {
+            console.error('Failed to copy QA text:', error);
+            // Fallback for older browsers
+            const userText = marker.summary;
+            const chatgptText = marker.chatgptReply || '';
+            let qaText = `Q: ${userText}`;
+            if (chatgptText) {
+                qaText += `\n\nA: ${chatgptText}`;
+            }
+            this.fallbackCopyText(qaText);
+        }
+    }
+
+    // Show copy feedback
+    showCopyFeedback() {
+        // Create temporary feedback element
+        const feedback = document.createElement('div');
+        feedback.className = 'toc-copy-feedback';
+        feedback.textContent = '已复制到剪贴板';
+        feedback.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 300);
+        }, 2000);
+    }
+
+    // Fallback copy method for older browsers
+    fallbackCopyText(text) {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.cssText = 'position: fixed; top: -1000px; left: -1000px;';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (successful) {
+                this.showCopyFeedback();
+            } else {
+                console.error('Fallback copy failed');
+            }
+        } catch (error) {
+            console.error('Fallback copy error:', error);
         }
     }
 
@@ -1621,7 +1780,7 @@ class TimelineManager {
         try { this.mutationObserver?.disconnect(); } catch {}
         try { this.resizeObserver?.disconnect(); } catch {}
         try { this.intersectionObserver?.disconnect(); } catch {}
-        this.visibleUserTurns.clear();
+        this.visibleTurns.clear();
         if (this.ui.timelineBar && this.onTimelineBarClick) {
             try { this.ui.timelineBar.removeEventListener('click', this.onTimelineBarClick); } catch {}
         }
@@ -1760,6 +1919,11 @@ class TimelineManager {
         this.dragStartX = e.clientX;
         this.dragStartY = e.clientY;
 
+        if (!this.ui.timelineBar) {
+            console.warn('Timeline bar not available for drag start');
+            return;
+        }
+
         const rect = this.ui.timelineBar.getBoundingClientRect();
         this.barStartX = rect.right;
         this.barStartY = rect.top;
@@ -1869,6 +2033,7 @@ class TimelineManager {
 
     // Dot interaction control methods
     disableDotInteractions() {
+        if (!this.ui.timelineBar) return;
         const dots = this.ui.timelineBar.querySelectorAll('.timeline-dot');
         dots.forEach(dot => {
             dot.style.pointerEvents = 'none';
@@ -1877,6 +2042,7 @@ class TimelineManager {
     }
 
     enableDotInteractions() {
+        if (!this.ui.timelineBar) return;
         const dots = this.ui.timelineBar.querySelectorAll('.timeline-dot');
         dots.forEach(dot => {
             dot.style.pointerEvents = '';
@@ -1920,6 +2086,11 @@ class TimelineManager {
     // Position persistence methods
     async savePosition() {
         try {
+            if (!this.ui.timelineBar) {
+                console.warn('Timeline bar not available for position save');
+                return;
+            }
+
             const rect = this.ui.timelineBar.getBoundingClientRect();
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
@@ -1956,6 +2127,11 @@ class TimelineManager {
                 let top = (saved.top / 100) * currentWindowHeight;
 
                 // Apply boundary constraints
+                if (!this.ui.timelineBar) {
+                    console.warn('Timeline bar not available for position restore');
+                    return;
+                }
+
                 const margin = 10;
                 const barRect = this.ui.timelineBar.getBoundingClientRect();
                 const barWidth = barRect.width;
@@ -2140,16 +2316,43 @@ class TimelineManager {
                 const item = document.createElement('div');
                 item.className = `toc-item${marker.id === this.activeTurnId ? ' active' : ''}`;
                 item.dataset.turnId = marker.id;
+
+                // Show user's message as title and ChatGPT's reply as content
+                const userText = this.truncateText(marker.summary, 25);
+                const chatgptText = marker.chatgptReply ? this.truncateText(marker.chatgptReply, 35) : '';
+
                 item.innerHTML = `
                     <span class="toc-index">${index + 1}</span>
-                    <span class="toc-text">${this.truncateText(marker.summary, 35)}</span>
+                    <div class="toc-content">
+                        <div class="toc-user-message">You: ${userText}</div>
+                        ${chatgptText ? `<div class="toc-chatgpt-reply">${chatgptText}</div>` : ''}
+                    </div>
+                    <button class="toc-copy-btn" title="复制QA对话" aria-label="复制QA对话">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
                 `;
 
                 item.addEventListener('click', (e) => {
+                    // Don't navigate if clicking on copy button
+                    if (e.target.closest('.toc-copy-btn')) {
+                        return;
+                    }
                     e.stopPropagation();
                     this.smoothScrollTo(marker.element);
                     this.collapseTOC();
                 });
+
+                // Add copy button functionality
+                const copyBtn = item.querySelector('.toc-copy-btn');
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.copyQAText(marker);
+                    });
+                }
 
                 list.appendChild(item);
             });
@@ -2258,13 +2461,32 @@ class TimelineManager {
             const item = document.createElement('div');
             item.className = `toc-item${marker.id === this.activeTurnId ? ' active' : ''}`;
             item.dataset.turnId = marker.id;
+
+            // Show user's message as title and ChatGPT's reply as content
+            const userText = this.truncateText(marker.summary, 25);
+            const chatgptText = marker.chatgptReply ? this.truncateText(marker.chatgptReply, 35) : '';
+
             item.innerHTML = `
                 <span class="toc-index">${index + 1}</span>
-                <span class="toc-text">${this.truncateText(marker.summary, 35)}</span>
+                <div class="toc-content">
+                    <div class="toc-user-message">You: ${userText}</div>
+                    ${chatgptText ? `<div class="toc-chatgpt-reply">${chatgptText}</div>` : ''}
+                </div>
+                <button class="toc-copy-btn" title="复制QA对话" aria-label="复制QA对话">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="m5 15-4-4 4-4"></path>
+                        <path d="M5 15H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"></path>
+                    </svg>
+                </button>
             `;
 
             // Use debounced click handler to prevent rapid-fire updates
             const debouncedClick = this.debounce((e) => {
+                // Don't navigate if clicking on copy button
+                if (e.target.closest('.toc-copy-btn')) {
+                    return;
+                }
                 e.stopPropagation();
                 this.smoothScrollTo(marker.element);
                 // Ensure TOC remains visible after navigation
@@ -2274,6 +2496,16 @@ class TimelineManager {
             }, 100);
 
             item.addEventListener('click', debouncedClick);
+
+            // Add copy button functionality
+            const copyBtn = item.querySelector('.toc-copy-btn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.copyQAText(marker);
+                });
+            }
+
             list.appendChild(item);
         });
     }
@@ -2715,6 +2947,49 @@ class TimelineManager {
         }
     }
 
+    // Force TOC refresh after page changes - bypasses debouncing for immediate update
+    forceTOCRefresh() {
+        if (!this.settings.enableTOC) return;
+
+        console.log('Force refreshing TOC after page change...');
+        
+        // Check if TOC container exists, create if needed
+        let tocContainer = document.querySelector('.timeline-toc');
+        if (!tocContainer) {
+            console.log('TOC container not found, creating new one...');
+            tocContainer = this.createTOC();
+            if (!tocContainer) {
+                console.warn('Failed to create TOC container');
+                return;
+            }
+        } else {
+            // Ensure existing TOC is visible
+            tocContainer.style.display = 'block';
+            tocContainer.style.visibility = 'visible';
+            tocContainer.style.opacity = '1';
+            tocContainer.style.pointerEvents = 'auto';
+        }
+        
+        // Cancel any pending debounced updates to avoid conflicts
+        if (this.debouncedTOCUpdate.cancel) {
+            this.debouncedTOCUpdate.cancel();
+        }
+        
+        // Force immediate incremental update
+        this.updateTOCIncrementally(tocContainer);
+        
+        // Auto-expand TOC if it has content and is collapsed
+        if (this.markers.length > 0 && tocContainer.classList.contains('collapsed')) {
+            setTimeout(() => {
+                if (this.markers.length > 0) {
+                    this.expandTOC();
+                }
+            }, 50);
+        }
+        
+        console.log('TOC force refresh completed');
+    }
+
     // Ensure TOC is always visible and properly styled
     ensureTOCVisible() {
         if (!this.settings.enableTOC) return;
@@ -2832,9 +3107,33 @@ let currentUrl = location.href;
 let initTimerId = null;            // cancellable delayed init
 let pageObserver = null;           // page-level MutationObserver (managed)
 let routeCheckIntervalId = null;   // lightweight href polling fallback
+
+// Cached DOM elements for performance optimization
+let lastConversationCheck = 0;
+let conversationElementsCache = null;
+const CONVERSATION_CACHE_TTL = 100; // Cache TTL in milliseconds
 let routeListenersAttached = false;
 
+// Enhanced page content change detection
+let contentChangeObserver = null;
+const CONTENT_CHANGE_DEBOUNCE = 150; // Debounce DOM change detection
+
 const TIMELINE_SUPPORTED_PATH_PREFIXES = ['/c/', '/g/'];
+const URL_CHANGE_MAX_ATTEMPTS = 8;
+const URL_CHANGE_RETRY_DELAY = 200;
+
+// Utility function for debouncing function calls
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 function isTimelineSupportedPath(pathname = location.pathname) {
     try {
@@ -2844,30 +3143,191 @@ function isTimelineSupportedPath(pathname = location.pathname) {
     }
 }
 
+// Hook into History API for SPA navigation detection
+let originalPushState = null;
+let originalReplaceState = null;
+
+function setupPushStateHooks() {
+    // Only hook once to avoid multiple hooks
+    if (originalPushState) return;
+    
+    try {
+        // Store original methods
+        originalPushState = history.pushState;
+        originalReplaceState = history.replaceState;
+        
+        // Hook pushState
+        history.pushState = function(...args) {
+            const result = originalPushState.apply(this, args);
+            console.log('PushState detected, triggering URL change check');
+            // Use setTimeout to ensure the URL change is processed after the pushState
+            setTimeout(() => {
+                handleUrlChange();
+            }, 10);
+            return result;
+        };
+        
+        // Hook replaceState
+        history.replaceState = function(...args) {
+            const result = originalReplaceState.apply(this, args);
+            console.log('ReplaceState detected, triggering URL change check');
+            // Use setTimeout to ensure the URL change is processed after the replaceState
+            setTimeout(() => {
+                handleUrlChange();
+            }, 10);
+            return result;
+        };
+        
+        console.log('PushState/ReplaceState hooks installed for SPA navigation detection');
+        
+        // Also listen for click events on links to catch navigation attempts
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href]');
+            if (link && link.href && link.href.includes('/c/')) {
+                console.log('Navigation link clicked, scheduling URL change check');
+                // Schedule a check after a short delay to allow navigation to complete
+                setTimeout(() => {
+                    if (location.href !== currentUrl) {
+                        handleUrlChange();
+                    }
+                }, 50);
+            }
+        }, true); // Use capture phase to catch early
+    } catch (err) {
+        console.warn('Failed to setup pushState hooks:', err);
+    }
+}
+
 function attachRouteListenersOnce() {
     if (routeListenersAttached) return;
     routeListenersAttached = true;
+
+    // Standard navigation event listeners
     try { window.addEventListener('popstate', handleUrlChange); } catch {}
     try { window.addEventListener('hashchange', handleUrlChange); } catch {}
-    // Lightweight polling fallback for pushState-driven SPA changes
+
+    // Hook into pushState and replaceState for SPA navigation detection
+    setupPushStateHooks();
+
+    // Enhanced DOM content change detection for SPA navigation
+    setupContentChangeObserver();
+
+    // Lightweight polling fallback for pushState-driven SPA changes - increased frequency for better responsiveness
     try {
         routeCheckIntervalId = setInterval(() => {
             if (location.href !== currentUrl) handleUrlChange();
-        }, 800);
+        }, 200); // Reduced from 800ms to 200ms for better responsiveness
     } catch {}
+}
+
+function setupContentChangeObserver() {
+    if (contentChangeObserver) return;
+
+    try {
+        contentChangeObserver = new MutationObserver(debounce(() => {
+            // Check if we're on a supported path and have conversation elements
+            if (isTimelineSupportedPath() && hasRequiredConversationElements(true)) {
+                // Handle both URL changes and content changes
+                if (location.href !== currentUrl) {
+                    // URL changed - this is SPA navigation
+                    console.log('DOM content changed with URL change, triggering navigation handler');
+                    handleUrlChange();
+                } else if (!timelineManagerInstance) {
+                    // URL same but content changed - might be dynamic content loading
+                    console.log('DOM content changed without URL change, checking if timeline should be initialized');
+                    processUrlChange();
+                } else if (timelineManagerInstance) {
+                    // Timeline exists but content changed - might need refresh
+                    console.log('DOM content changed with existing timeline, checking if refresh needed');
+                    // Check if the conversation structure has significantly changed
+                    const currentTurns = document.querySelectorAll('article[data-turn-id]').length;
+                    if (currentTurns !== timelineManagerInstance.markers.length) {
+                        console.log('Conversation structure changed, refreshing timeline');
+                        timelineManagerInstance.refreshContent();
+                    }
+                }
+            }
+        }, CONTENT_CHANGE_DEBOUNCE));
+    } catch (err) {
+        console.warn('Failed to setup content change observer:', err);
+        return;
+    }
+
+    try {
+        // Observe main content areas for changes
+        const targetSelectors = [
+            'main', 
+            '[role="main"]',
+            '#__next', // Common React app root
+            '.react-scroll-to-bottom', // ChatGPT specific
+            'article', 
+            '[data-testid="conversation-turn"]', 
+            '.conversation-turn'
+        ];
+        
+        let observerAttached = false;
+        targetSelectors.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element && !observerAttached) {
+                console.log(`Attaching content change observer to: ${selector}`);
+                contentChangeObserver.observe(element, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['data-turn-id', 'class', 'data-testid']
+                });
+                observerAttached = true;
+            }
+        });
+
+        // Also observe body as fallback if no specific element found
+        if (!observerAttached && document.body) {
+            console.log('Attaching content change observer to body as fallback');
+            contentChangeObserver.observe(document.body, { 
+                childList: true, 
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['data-turn-id', 'class', 'data-testid']
+            });
+        }
+    } catch (err) {
+        console.warn('Failed to start content change observer:', err);
+    }
 }
 
 function detachRouteListeners() {
     if (!routeListenersAttached) return;
     routeListenersAttached = false;
+
+    // Clean up standard event listeners
     try { window.removeEventListener('popstate', handleUrlChange); } catch {}
     try { window.removeEventListener('hashchange', handleUrlChange); } catch {}
+
+    // Restore original pushState and replaceState methods
+    try {
+        if (originalPushState) {
+            history.pushState = originalPushState;
+            originalPushState = null;
+        }
+        if (originalReplaceState) {
+            history.replaceState = originalReplaceState;
+            originalReplaceState = null;
+        }
+    } catch {}
+
+    // Clean up content change observer
+    try { if (contentChangeObserver) { contentChangeObserver.disconnect(); contentChangeObserver = null; } } catch {}
+
+    // Clean up polling interval
     try { if (routeCheckIntervalId) { clearInterval(routeCheckIntervalId); routeCheckIntervalId = null; } } catch {}
 }
 
 function cleanupGlobalObservers() {
     try { pageObserver?.disconnect(); } catch {}
     pageObserver = null;
+
+    try { contentChangeObserver?.disconnect(); } catch {}
+    contentChangeObserver = null;
 }
 
 async function initializeTimeline() {
@@ -2886,17 +3346,7 @@ async function initializeTimeline() {
     try { document.querySelector('.timeline-toc')?.remove(); } catch {}
 
     // Check if we have the necessary elements before creating new instance
-    const possibleSelectors = [
-        'article[data-turn-id]',
-        '[data-testid="conversation-turn"]',
-        '.conversation-turn',
-        'article',
-        '[data-message-id]',
-        '.message'
-    ];
-
-    const hasConversationElements = possibleSelectors.some(selector => document.querySelector(selector)) ||
-                                   document.querySelector('main');
+    const hasConversationElements = hasRequiredConversationElements(true); // Force fresh check
 
     if (!hasConversationElements) {
         console.log('No conversation elements found, skipping timeline initialization');
@@ -2917,63 +3367,123 @@ function handleUrlChange() {
     if (location.href === currentUrl) return;
     currentUrl = location.href;
 
+    // Reset cached conversation lookups so we don't rely on stale results
+    conversationElementsCache = null;
+    lastConversationCheck = 0;
+
     // Cancel any pending init from previous route
     try { if (initTimerId) { clearTimeout(initTimerId); initTimerId = null; } } catch {}
 
     if (isTimelineSupportedPath()) {
-        // Check if we have conversation elements and need to initialize
-        const possibleSelectors = [
-            'article[data-turn-id]',
-            '[data-testid="conversation-turn"]',
-            '.conversation-turn',
-            'article',
-            '[data-message-id]',
-            '.message'
-        ];
+        // Attempt to process the route change with retries to wait for DOM readiness
+        attemptProcessUrlChange();
+    }
+}
 
-        const hasConversationElements = possibleSelectors.some(selector => document.querySelector(selector)) ||
-                                       document.querySelector('main');
+function attemptProcessUrlChange(attempt = 1) {
+    if (!isTimelineSupportedPath()) return;
 
-        // Delay slightly to allow DOM to settle; re-check path and elements before init
-        initTimerId = setTimeout(async () => {
-            initTimerId = null;
-            if (isTimelineSupportedPath() && hasConversationElements) {
-                if (!timelineManagerInstance) {
-                    try {
-                        console.log('Initializing timeline after URL change');
-                        await initializeTimeline();
-                    } catch (err) {
-                        console.error("Failed to initialize timeline after URL change:", err);
-                    }
-                } else {
-                    try {
-                        console.log('Updating timeline content after URL change');
-                        // Use the new refreshContent method
-                        await timelineManagerInstance.refreshContent();
-                    } catch (err) {
-                        console.error("Failed to update timeline after URL change:", err);
-                        // If update fails, try to reinitialize
-                        try {
-                            timelineManagerInstance.destroy();
-                            timelineManagerInstance = null;
-                            await initializeTimeline();
-                        } catch (reinitErr) {
-                            console.error("Failed to reinitialize timeline:", reinitErr);
-                        }
-                    }
-                }
-            }
-        }, 300);
-    } else {
-        if (timelineManagerInstance) {
-            try { timelineManagerInstance.destroy(); } catch {}
-            timelineManagerInstance = null;
+    const hasConversationElements = hasRequiredConversationElements(true);
+
+    if (hasConversationElements) {
+        processUrlChange();
+        return;
+    }
+
+    if (attempt >= URL_CHANGE_MAX_ATTEMPTS) {
+        console.warn('Timeline: conversation elements not found after URL change retries');
+        return;
+    }
+
+    initTimerId = setTimeout(() => {
+        initTimerId = null;
+        attemptProcessUrlChange(attempt + 1);
+    }, URL_CHANGE_RETRY_DELAY);
+}
+
+// Optimized DOM element detection with caching for better performance
+function hasRequiredConversationElements(forceCheck = false) {
+    const now = Date.now();
+
+    // Use cached result if available and not expired
+    if (!forceCheck && conversationElementsCache !== null &&
+        (now - lastConversationCheck) < CONVERSATION_CACHE_TTL) {
+        return conversationElementsCache;
+    }
+
+    // Optimized selector list - check in order of specificity and likelihood
+    const possibleSelectors = [
+        'article[data-turn-id]',
+        '[data-testid="conversation-turn"]',
+        '.conversation-turn',
+        'article',
+        '[data-message-id]',
+        '.message'
+    ];
+
+    let foundElement = null;
+    for (const selector of possibleSelectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+            foundElement = element;
+            break;
         }
-        try { document.querySelector('.chatgpt-timeline-bar')?.remove(); } catch {}
-        try { document.querySelector('.timeline-left-slider')?.remove(); } catch {}
-        try { document.getElementById('chatgpt-timeline-tooltip')?.remove(); } catch {}
-        try { document.querySelector('.timeline-toc')?.remove(); } catch {}
-        cleanupGlobalObservers();
+    }
+
+    const hasElements = Boolean(foundElement || document.querySelector('main'));
+
+    // Cache the result (boolean)
+    conversationElementsCache = hasElements;
+    lastConversationCheck = now;
+
+    if (forceCheck) {
+        return foundElement || hasElements;
+    }
+
+    return hasElements;
+}
+
+async function processUrlChange() {
+    if (!timelineManagerInstance) {
+        try {
+            console.log('Initializing timeline after URL change');
+            await initializeTimeline();
+        } catch (err) {
+            console.error("Failed to initialize timeline after URL change:", err);
+        }
+    } else {
+        try {
+            console.log('Updating timeline content after URL change');
+            // Use the new refreshContent method
+            await timelineManagerInstance.refreshContent();
+            
+            // Additional TOC check after page change - ensure it's properly updated
+            if (timelineManagerInstance.settings.enableTOC) {
+                setTimeout(() => {
+                    const tocContainer = document.querySelector('.timeline-toc');
+                    // Only force refresh if TOC is missing or still showing empty state after our initial refresh
+                    if (!tocContainer || (tocContainer.querySelector('.toc-empty-state') && timelineManagerInstance.markers.length > 0)) {
+                        console.log('TOC needs additional refresh after URL change, forcing update...');
+                        timelineManagerInstance.forceTOCRefresh();
+                    }
+                }, 400); // Give more time for the initial refresh to complete
+            }
+        } catch (err) {
+            console.error("Failed to update timeline after URL change:", err);
+            // If update fails, try to reinitialize
+            try {
+                // Clean up existing UI first
+                if (timelineManagerInstance.ui.timelineBar) {
+                    timelineManagerInstance.ui.timelineBar.remove();
+                    timelineManagerInstance.ui = { timelineBar: null, tooltip: null };
+                }
+                timelineManagerInstance.destroy();
+                timelineManagerInstance = null;
+                await initializeTimeline();
+            } catch (reinitErr) {
+                console.error("Failed to reinitialize timeline:", reinitErr);
+            }
+        }
     }
 }
 
@@ -3008,19 +3518,8 @@ const initializationInterval = setInterval(async () => {
     initializationAttempts++;
 
     // Check if we can find conversation elements (updated for new DOM structure)
-    const possibleSelectors = [
-        'article[data-turn-id]',
-        '[data-testid="conversation-turn"]',
-        '.conversation-turn',
-        'article',
-        '[data-message-id]',
-        '.message',
-        'main [class*="conversation"]',
-        'main [class*="message"]'
-    ];
-
-    const hasConversationElements = possibleSelectors.some(selector => document.querySelector(selector)) ||
-                                   document.querySelector('main') && (document.body.textContent || '').includes('ChatGPT');
+    const hasConversationElements = hasRequiredConversationElements() ||
+                                   (document.querySelector('main') && (document.body.textContent || '').includes('ChatGPT'));
 
     if (hasConversationElements && isTimelineSupportedPath() && !timelineManagerInstance) {
         console.log(`Attempting timeline initialization (attempt ${initializationAttempts})`);
