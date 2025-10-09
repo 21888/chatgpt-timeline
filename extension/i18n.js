@@ -5,7 +5,7 @@
 class I18nManager {
     constructor() {
         this.currentLanguage = 'auto';
-        this.supportedLanguages = ['zh-CN', 'en'];
+        this.supportedLanguages = ['zh_CN', 'en'];
         this.languageCache = new Map();
         this.languageKey = 'chatgptTimelineLanguage';
         this.listeners = new Set();

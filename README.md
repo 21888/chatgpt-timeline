@@ -4,7 +4,7 @@
 
 # ChatGPT Timeline Extension
 
-> 🇨🇳 查看中文版：[README.zh-CN.md](./README.zh-CN.md)
+> 🇨🇳 查看中文版：[README.zh_CN.md](./README.zh_CN.md)
 
 Interactive timeline for ChatGPT conversations - click to navigate, drag to reposition, adapts to themes.
 
@@ -22,7 +22,7 @@ Interactive timeline for ChatGPT conversations - click to navigate, drag to repo
 
 ## 🧩 Installation
 
-**[Install from Chrome Web Store](https://chromewebstore.google.com/detail/eghgeolmbcndfebncajjhbpohnnegdkm?authuser=0&hl=zh-CN)**
+**[Install from Chrome Web Store](https://chromewebstore.google.com/detail/eghgeolmbcndfebncajjhbpohnnegdkm?authuser=0&hl=zh_CN)**
 
 > Works with any ChatGPT conversation page. Timeline appears automatically after installation.
 

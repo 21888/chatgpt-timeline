@@ -22,7 +22,7 @@
 
 ## 🧩 安装方式
 
-**[从 Chrome 应用商店安装](https://chromewebstore.google.com/detail/eghgeolmbcndfebncajjhbpohnnegdkm?authuser=0&hl=zh-CN)**
+**[从 Chrome 应用商店安装](https://chromewebstore.google.com/detail/eghgeolmbcndfebncajjhbpohnnegdkm?authuser=0&hl=zh_CN)**
 
 > 安装完成后，打开任意 ChatGPT 对话页面即可自动显示时间轴。
 
