@@ -644,6 +644,50 @@ html.dark .toc-header {
     }
 }
 
+/* Additional responsive rules for very small screens */
+@media (max-width: 320px) {
+    .chatgpt-timeline-bar {
+        right: 5px;
+        width: 20px;
+    }
+
+    .chatgpt-timeline-bar.position-left {
+        left: 5px;
+    }
+
+    .timeline-toc.collapsed {
+        right: 35px;
+        width: 30px;
+        height: 30px;
+    }
+
+    .chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
+        left: 35px;
+    }
+}
+
+/* Ensure timeline never goes off-screen */
+@media (max-width: 280px) {
+    .chatgpt-timeline-bar {
+        right: 2px;
+        width: 18px;
+    }
+
+    .chatgpt-timeline-bar.position-left {
+        left: 2px;
+    }
+
+    .timeline-toc.collapsed {
+        right: 25px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
+        left: 25px;
+    }
+}
+
 .timeline-dot {
     position: absolute;
     left: 50%;

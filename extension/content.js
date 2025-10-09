@@ -1820,8 +1820,10 @@ class TimelineManager {
 
         // Apply smooth animation during drag
         timelineBar.style.transition = 'none';
-        timelineBar.style.right = `${window.innerWidth - newX - barWidth}px`;
-        timelineBar.style.top = `${newY}px`;
+        // Ensure the timeline stays within screen bounds
+        const constrainedX = Math.max(margin, Math.min(newX, maxX));
+        timelineBar.style.right = `${window.innerWidth - constrainedX - barWidth}px`;
+        timelineBar.style.top = `${Math.max(margin, Math.min(newY, maxY))}px`;
 
         // Add visual feedback for boundary proximity
         const nearBoundary = newX < margin + 20 || newX > maxX - 20 ||
@@ -1919,11 +1921,21 @@ class TimelineManager {
     async savePosition() {
         try {
             const rect = this.ui.timelineBar.getBoundingClientRect();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Convert pixel coordinates to percentage of window size
             const position = {
-                right: window.innerWidth - rect.right - rect.width,
-                top: rect.top
+                right: ((windowWidth - rect.right) / windowWidth) * 100,
+                top: (rect.top / windowHeight) * 100,
+                width: (rect.width / windowWidth) * 100,
+                height: (rect.height / windowHeight) * 100,
+                // Store window dimensions for validation
+                windowWidth: windowWidth,
+                windowHeight: windowHeight
             };
 
+            console.log(`[Timeline Position] Saved position: ${position.right.toFixed(2)}%, ${position.top.toFixed(2)}% of window ${windowWidth}x${windowHeight}`);
             // Use chrome.storage instead of localStorage for better persistence
             await chrome.storage.local.set({ [this.positionKey]: position });
         } catch (error) {
@@ -1936,8 +1948,34 @@ class TimelineManager {
             const result = await chrome.storage.local.get([this.positionKey]);
             const saved = result[this.positionKey];
             if (saved) {
-                this.ui.timelineBar.style.right = `${saved.right}px`;
-                this.ui.timelineBar.style.top = `${saved.top}px`;
+                const currentWindowWidth = window.innerWidth;
+                const currentWindowHeight = window.innerHeight;
+
+                // Convert percentage back to pixels based on current window size
+                let right = (saved.right / 100) * currentWindowWidth;
+                let top = (saved.top / 100) * currentWindowHeight;
+
+                // Apply boundary constraints
+                const margin = 10;
+                const barRect = this.ui.timelineBar.getBoundingClientRect();
+                const barWidth = barRect.width;
+                const barHeight = barRect.height;
+
+                const maxRight = currentWindowWidth - barWidth - margin;
+                const maxTop = currentWindowHeight - barHeight - margin;
+
+                right = Math.max(margin, Math.min(right, maxRight));
+                top = Math.max(margin, Math.min(top, maxTop));
+
+                this.ui.timelineBar.style.right = `${right}px`;
+                this.ui.timelineBar.style.top = `${top}px`;
+
+                console.log(`[Timeline Position] Restored position: ${right.toFixed(0)}px, ${top.toFixed(0)}px (${saved.right.toFixed(2)}%, ${saved.top.toFixed(2)}% of ${currentWindowWidth}x${currentWindowHeight})`);
+
+                // Update stored position with current window dimensions for future use
+                saved.windowWidth = currentWindowWidth;
+                saved.windowHeight = currentWindowHeight;
+                await chrome.storage.local.set({ [this.positionKey]: saved });
             }
         } catch (error) {
             console.warn('Failed to restore timeline position:', error);
