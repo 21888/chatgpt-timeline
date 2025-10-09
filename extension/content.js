@@ -1097,12 +1097,175 @@ class TimelineManager {
         }
     }
 
+    // Extract full text content including code blocks and formatting
+    getFullTextContent(element) {
+        if (!element) return '';
+        
+        try {
+            // Clone the element to avoid modifying the original
+            const clone = element.cloneNode(true);
+            
+            // Process code blocks to preserve formatting
+            const codeBlocks = clone.querySelectorAll('pre, code');
+            codeBlocks.forEach(block => {
+                if (block.tagName === 'PRE') {
+                    // For pre blocks, add markdown code block formatting
+                    const code = block.textContent || '';
+                    const language = this.detectCodeLanguage(block);
+                    block.textContent = `\n\`\`\`${language}\n${code}\n\`\`\`\n`;
+                } else if (block.tagName === 'CODE' && !block.closest('pre')) {
+                    // For inline code, add backticks
+                    const code = block.textContent || '';
+                    block.textContent = `\`${code}\``;
+                }
+            });
+            
+            // Process other formatting elements
+            const strongElements = clone.querySelectorAll('strong, b');
+            strongElements.forEach(el => {
+                const text = el.textContent || '';
+                el.textContent = `**${text}**`;
+            });
+            
+            const emElements = clone.querySelectorAll('em, i');
+            emElements.forEach(el => {
+                const text = el.textContent || '';
+                el.textContent = `*${text}*`;
+            });
+            
+            // Process lists
+            const listItems = clone.querySelectorAll('li');
+            listItems.forEach(li => {
+                const text = li.textContent || '';
+                li.textContent = `• ${text}\n`;
+            });
+            
+            // Get the final text content
+            let text = clone.textContent || '';
+            
+            // Clean up extra whitespace but preserve code block formatting
+            text = text.replace(/\n\s*\n\s*\n/g, '\n\n'); // Remove excessive line breaks
+            text = text.trim();
+            
+            // Apply normalization but preserve code blocks
+            return this.normalizeTextWithCodeBlocks(text);
+            
+        } catch (error) {
+            console.error('Error extracting full text content:', error);
+            return this.normalizeText(element.textContent || '');
+        }
+    }
+
+    // Get full ChatGPT reply with proper formatting
+    getFullChatGPTReply(userElement) {
+        try {
+            const allTurns = Array.from(this.conversationContainer.querySelectorAll('article[data-turn-id]'));
+            const currentIndex = allTurns.indexOf(userElement);
+
+            // Look for the next assistant turn (ChatGPT's reply) after this user turn
+            for (let i = currentIndex + 1; i < allTurns.length; i++) {
+                const turn = allTurns[i];
+                if (turn.dataset.turn === 'assistant') {
+                    const replyText = this.getFullTextContent(turn);
+                    // Return the reply if it's not empty and has sufficient content
+                    if (replyText && replyText.length > 10) {
+                        return replyText;
+                    }
+                    break;
+                }
+            }
+        } catch (error) {
+            console.error('Error getting full ChatGPT reply:', error);
+        }
+
+        return '';
+    }
+
+    // Normalize text while preserving code blocks
+    normalizeTextWithCodeBlocks(text) {
+        try {
+            // Split by code blocks to preserve them
+            const codeBlockRegex = /```[\s\S]*?```/g;
+            const parts = [];
+            let lastIndex = 0;
+            let match;
+
+            while ((match = codeBlockRegex.exec(text)) !== null) {
+                // Add text before code block (normalized)
+                if (match.index > lastIndex) {
+                    const beforeText = text.substring(lastIndex, match.index);
+                    parts.push(beforeText.replace(/\s+/g, ' ').trim());
+                }
+                
+                // Add code block as-is
+                parts.push(match[0]);
+                lastIndex = match.index + match[0].length;
+            }
+            
+            // Add remaining text after last code block
+            if (lastIndex < text.length) {
+                const afterText = text.substring(lastIndex);
+                parts.push(afterText.replace(/\s+/g, ' ').trim());
+            }
+            
+            let result = parts.join(' ').trim();
+            
+            // Apply prefix removal
+            result = result.replace(/^\s*(you\s*said\s*[:：]?\s*)/i, '');
+            result = result.replace(/^\s*(chatgpt\s*said\s*[:：]?\s*)/i, '');
+            result = result.replace(/^\s*(chatgpt\s*[:：]?\s*)/i, '');
+            result = result.replace(/^\s*(assistant\s*[:：]?\s*)/i, '');
+            
+            return result;
+        } catch (error) {
+            console.error('Error normalizing text with code blocks:', error);
+            return text;
+        }
+    }
+
+    // Detect code language from code block
+    detectCodeLanguage(codeBlock) {
+        try {
+            // Look for language hints in class names
+            const className = codeBlock.className || '';
+            const langMatch = className.match(/language-(\w+)/);
+            if (langMatch) {
+                return langMatch[1];
+            }
+            
+            // Look for data attributes
+            const lang = codeBlock.dataset.language || codeBlock.dataset.lang;
+            if (lang) {
+                return lang;
+            }
+            
+            // Try to detect from content
+            const content = codeBlock.textContent || '';
+            if (content.includes('function ') || content.includes('const ') || content.includes('=>')) {
+                return 'javascript';
+            }
+            if (content.includes('def ') || content.includes('import ')) {
+                return 'python';
+            }
+            if (content.includes('#include') || content.includes('int main')) {
+                return 'cpp';
+            }
+            if (content.includes('public class') || content.includes('System.out')) {
+                return 'java';
+            }
+            
+            return ''; // No language detected
+        } catch {
+            return '';
+        }
+    }
+
     // Copy QA text to clipboard
     async copyQAText(marker) {
         try {
-            // Get full text content (not truncated)
-            const userText = marker.summary;
-            const chatgptText = marker.chatgptReply || '';
+            // Get full text content with proper formatting (including code blocks)
+            const userText = this.getFullTextContent(marker.element);
+            const chatgptText = this.getFullChatGPTReply(marker.element);
             
             // Format as QA text
             let qaText = `Q: ${userText}`;
@@ -1119,8 +1282,8 @@ class TimelineManager {
         } catch (error) {
             console.error('Failed to copy QA text:', error);
             // Fallback for older browsers
-            const userText = marker.summary;
-            const chatgptText = marker.chatgptReply || '';
+            const userText = this.getFullTextContent(marker.element);
+            const chatgptText = this.getFullChatGPTReply(marker.element);
             let qaText = `Q: ${userText}`;
             if (chatgptText) {
                 qaText += `\n\nA: ${chatgptText}`;
@@ -2324,7 +2487,7 @@ class TimelineManager {
                 item.innerHTML = `
                     <span class="toc-index">${index + 1}</span>
                     <div class="toc-content">
-                        <div class="toc-user-message">You: ${userText}</div>
+                        <div class="toc-user-message">${userText}</div>
                         ${chatgptText ? `<div class="toc-chatgpt-reply">${chatgptText}</div>` : ''}
                     </div>
                     <button class="toc-copy-btn" title="复制QA对话" aria-label="复制QA对话">
@@ -2469,7 +2632,7 @@ class TimelineManager {
             item.innerHTML = `
                 <span class="toc-index">${index + 1}</span>
                 <div class="toc-content">
-                    <div class="toc-user-message">You: ${userText}</div>
+                    <div class="toc-user-message">${userText}</div>
                     ${chatgptText ? `<div class="toc-chatgpt-reply">${chatgptText}</div>` : ''}
                 </div>
                 <button class="toc-copy-btn" title="复制QA对话" aria-label="复制QA对话">
