@@ -16,6 +16,7 @@ Interactive timeline for ChatGPT conversations - click to navigate, drag to repo
 - ⚙️ **Customizable** position and behavior settings
 - 📋 **Table of Contents** sidebar with message index
 - 🖱️ **Draggable interface** for flexible placement
+- 📏 **Dialog width adjustment** - Customize ChatGPT dialog width (20-150rem)
 - 📐 **Responsive positioning** - TOC panel adapts to window resizing using percentage-based coordinates
 
 ---
@@ -44,6 +45,11 @@ Click the extension icon in your browser toolbar to access the settings panel:
 - **Enable TOC** - Shows a sidebar with numbered message index
 - **Width** - Adjust TOC panel width (200-400px)
 - **Position** - Choose left or right side placement
+
+### ChatGPT Dialog Width
+- **Dialog Width** - Adjust the maximum width of ChatGPT dialog (20-150rem)
+- **Default** - 48rem for optimal reading experience
+- **Real-time adjustment** - Drag the slider for instant visual feedback
 
 ### Long Press Drag Feature
 - **Long press TOC card** - Long press (500ms) on the TOC panel to drag and move position
