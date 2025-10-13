@@ -1,14 +1,14 @@
 {
   "extensionName": {
-    "message": "ChatGPT 对话时间线",
+    "message": "ChatGPT 对话助手(时间线/目录导航/复制回复/页面宽度修改)",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "为ChatGPT对话添加导航时间轴，方便快速导航。",
+    "message": "为ChatGPT对话页面添加时间线/目录导航/复制回复/页面宽度修改功能，方便快速导航/复制回复/修改页面宽度。",
     "description": "Extension description"
   },
   "popupTitle": {
-    "message": "ChatGPT Timeline 设置",
+    "message": "ChatGPT 对话助手 设置",
     "description": "Popup title"
   },
   "popupDescription": {

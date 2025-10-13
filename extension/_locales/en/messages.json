@@ -1,14 +1,14 @@
 {
   "extensionName": {
-    "message": "ChatGPT Conversation Timeline",
+    "message": "ChatGPT Conversation Assistant(Timeline/TOC/Copy Reply/Page Width Modification)",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Adds a navigation timeline to ChatGPT conversations for easy navigation.",
+    "message": "Adds a timeline/TOC/Copy Reply/Page Width Modification to ChatGPT conversations for easy navigation/copy reply/modify page width.",
     "description": "Extension description"
   },
   "popupTitle": {
-    "message": "ChatGPT Timeline Settings",
+    "message": "ChatGPT Conversation Assistant Settings",
     "description": "Popup title"
   },
   "popupDescription": {
