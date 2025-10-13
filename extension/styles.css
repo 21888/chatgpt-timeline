@@ -1,3 +1,4 @@
+
 :root {
     --timeline-dot-color: #D1D5DB; /* Light mode gray */
     --timeline-dot-active-color: #10A37F; /* ChatGPT's primary green */
@@ -29,8 +30,13 @@
     /* spacing model */
     --timeline-tooltip-gap-visual: 8px;  /* arrow tip to dot */
     --timeline-tooltip-gap-box: 4px;     /* rectangle edge to timeline */
+    /* 宽度限制 */
+    --timeline-chatgpt-html-content-max-width: 48rem;
 }
-
+/* 宽度限制 */
+article.text-token-text-primary div div[tabindex]{
+    --thread-content-max-width: var(--timeline-chatgpt-html-content-max-width);
+}
 /* Override variables when ChatGPT's dark mode is active */
 html.dark {
     --timeline-dot-color: #555555;

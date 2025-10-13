@@ -307,7 +307,7 @@ body.dark-mode .checkmark {
 /* Responsive design */
 @media (max-width: 400px) {
     body {
-        width: 320px;
+        width: 380px;
     }
 
     .container {

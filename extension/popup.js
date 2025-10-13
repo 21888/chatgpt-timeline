@@ -8,7 +8,8 @@ class SettingsManager {
             enableTOC: false,
             tocWidth: 280,
             tocPosition: 'left',
-            enableLongPressDrag: true
+            enableLongPressDrag: true,
+            chatgptWidth: 48
         };
         this.settings = { ...this.defaultSettings };
 
@@ -94,6 +95,16 @@ class SettingsManager {
                 }).catch(err => {
                     console.log('Content script not ready, settings will be applied on next page load');
                 });
+
+                // 实时更新 CSS 变量（如果在 ChatGPT 页面上）
+                if (this.settings.chatgptWidth) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateChatGPTWidth',
+                        width: this.settings.chatgptWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update ChatGPT width in real-time');
+                    });
+                }
             }
         });
     }
@@ -143,6 +154,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // ChatGPT 对话宽度滑块
+        const chatgptWidthSlider = document.getElementById('chatgptWidth');
+        const chatgptWidthValue = document.getElementById('chatgptWidthValue');
+
+        chatgptWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            chatgptWidthValue.textContent = value + 'rem';
+            this.settings.chatgptWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', value + 'rem');
+            this.notifyContentScript();
+        });
+
+        chatgptWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // 重置按钮
         document.getElementById('resetSettings').addEventListener('click', () => {
             this.settings = { ...this.defaultSettings };
@@ -175,6 +203,12 @@ class SettingsManager {
 
         // 更新目录导航位置选择
         document.getElementById('tocPosition').value = this.settings.tocPosition;
+
+        // 更新 ChatGPT 对话宽度滑块和显示值
+        const chatgptWidthSlider = document.getElementById('chatgptWidth');
+        const chatgptWidthValue = document.getElementById('chatgptWidthValue');
+        chatgptWidthSlider.value = this.settings.chatgptWidth;
+        chatgptWidthValue.textContent = this.settings.chatgptWidth + 'rem';
     }
 
     updateTOCOptionVisibility() {

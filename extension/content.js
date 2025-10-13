@@ -108,7 +108,8 @@ class TimelineManager {
             enableLongPressDrag: true,
             enableTOC: true, // 默认启用目录导航
             tocWidth: 280,
-            tocPosition: 'left'
+            tocPosition: 'left',
+            chatgptWidth: 48
         };
 
         this.debouncedRecalculateAndRender = this.debounce(this.recalculateAndRenderMarkers, 350);
@@ -343,6 +344,11 @@ class TimelineManager {
         try {
             // Load settings first
             await this.loadSettings();
+
+            // Apply ChatGPT width setting
+            if (this.settings.chatgptWidth) {
+                document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', this.settings.chatgptWidth + 'rem');
+            }
 
             // Idempotent: ensure bar exists, then ensure track + content exist
             let timelineBar = document.querySelector('.chatgpt-timeline-bar');
@@ -3259,6 +3265,15 @@ class TimelineManager {
             }
         } else if (request.action === 'getSettings') {
             sendResponse(this.settings);
+        } else if (request.action === 'updateChatGPTWidth') {
+            try {
+                // Update CSS variable for ChatGPT width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update ChatGPT width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         }
     }
 }

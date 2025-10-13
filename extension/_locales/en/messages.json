@@ -94,5 +94,17 @@
   "dragDescription": {
     "message": "Controls long press dragging for both timeline and table of contents navigation",
     "description": "Description for drag settings"
+  },
+  "chatgptWidth": {
+    "message": "ChatGPT Dialog Width",
+    "description": "ChatGPT dialog width setting"
+  },
+  "chatgptWidthLabel": {
+    "message": "Dialog Width:",
+    "description": "ChatGPT width label"
+  },
+  "chatgptWidthDescription": {
+    "message": "Adjust the maximum width of ChatGPT dialog, drag the slider for real-time effect",
+    "description": "Description for ChatGPT width setting"
   }
 }
