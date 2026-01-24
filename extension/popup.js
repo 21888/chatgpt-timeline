@@ -1,3 +1,18 @@
+const DEEPSEEK_PADDING_MIN = 0;
+const DEEPSEEK_PADDING_MAX = 60;
+const DEFAULT_DEEPSEEK_PADDING = 5;
+const DEFAULT_DEEPSEEK_WIDTH = DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - DEFAULT_DEEPSEEK_PADDING;
+
+function migrateDeepseekWidthSetting(settings) {
+    if (!settings) return { settings, migrated: false };
+    if (settings.deepseekWidthMode === 'width') return { settings, migrated: false };
+    const raw = Number.parseFloat(settings.deepseekWidth);
+    const normalized = Number.isFinite(raw) ? raw : DEFAULT_DEEPSEEK_PADDING;
+    settings.deepseekWidth = DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - normalized;
+    settings.deepseekWidthMode = 'width';
+    return { settings, migrated: true };
+}
+
 // ChatGPT Timeline Settings Popup
 class SettingsManager {
     constructor() {
@@ -16,6 +31,8 @@ class SettingsManager {
             taskPageWidth: 48,
             geminiWidth: 48,
             claudeWidth: 48,
+            deepseekWidth: DEFAULT_DEEPSEEK_WIDTH,
+            deepseekWidthMode: 'width',
             grokWidth: 85
         };
         this.settings = { ...this.defaultSettings };
@@ -74,7 +91,11 @@ class SettingsManager {
                 if (loadedSettings.hasOwnProperty('enableDragging') && !loadedSettings.hasOwnProperty('enableLongPressDrag')) {
                     loadedSettings.enableLongPressDrag = loadedSettings.enableDragging;
                 }
-                this.settings = { ...this.defaultSettings, ...loadedSettings };
+                const { settings: migrated, migrated: didMigrate } = migrateDeepseekWidthSetting({ ...loadedSettings });
+                this.settings = { ...this.defaultSettings, ...migrated };
+                if (didMigrate) {
+                    localStorage.setItem(this.settingsKey, JSON.stringify(this.settings));
+                }
             }
         } catch (error) {
             console.warn('Failed to load settings:', error);
@@ -137,6 +158,15 @@ class SettingsManager {
                         width: this.settings.claudeWidth + 'rem'
                     }).catch(err => {
                         console.log('Failed to update Claude width in real-time');
+                    });
+                }
+
+                if (Number.isFinite(this.settings.deepseekWidth)) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateDeepseekWidth',
+                        width: this.settings.deepseekWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update DeepSeek width in real-time');
                     });
                 }
 
@@ -281,6 +311,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // DeepSeek 内容宽度滑块
+        const deepseekWidthSlider = document.getElementById('deepseekWidth');
+        const deepseekWidthValue = document.getElementById('deepseekWidthValue');
+
+        deepseekWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            deepseekWidthValue.textContent = value + 'rem';
+            this.settings.deepseekWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-deepseek-content-width', this.settings.deepseekWidth + 'rem');
+            this.notifyContentScript();
+        });
+
+        deepseekWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // Grok 内容宽度滑块
         const grokWidthSlider = document.getElementById('grokWidth');
         const grokWidthValue = document.getElementById('grokWidthValue');
@@ -359,6 +406,12 @@ class SettingsManager {
         const claudeWidthValue = document.getElementById('claudeWidthValue');
         claudeWidthSlider.value = this.settings.claudeWidth;
         claudeWidthValue.textContent = this.settings.claudeWidth + 'rem';
+
+        // 更新 DeepSeek 内容宽度滑块和显示值
+        const deepseekWidthSlider = document.getElementById('deepseekWidth');
+        const deepseekWidthValue = document.getElementById('deepseekWidthValue');
+        deepseekWidthSlider.value = this.settings.deepseekWidth;
+        deepseekWidthValue.textContent = this.settings.deepseekWidth + 'rem';
 
         // 更新 Grok 内容宽度滑块和显示值
         const grokWidthSlider = document.getElementById('grokWidth');

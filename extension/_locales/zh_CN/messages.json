@@ -127,6 +127,10 @@
     "message": "Claude",
     "description": "Claude width group heading"
   },
+  "deepseekWidthGroup": {
+    "message": "DeepSeek",
+    "description": "DeepSeek width group heading"
+  },
   "grokWidthGroup": {
     "message": "Grok",
     "description": "Grok width group heading"
@@ -170,6 +174,14 @@
   "claudeWidthDescription": {
     "message": "调整 Claude 对话框的最大宽度，拖动滑块实时生效",
     "description": "Description for Claude width setting"
+  },
+  "deepseekWidthLabel": {
+    "message": "内容宽度：",
+    "description": "DeepSeek width label"
+  },
+  "deepseekWidthDescription": {
+    "message": "调整 DeepSeek 内容宽度（通过左右内边距实现），拖动滑块实时生效",
+    "description": "Description for DeepSeek width setting"
   },
   "grokWidthLabel": {
     "message": "内容宽度：",

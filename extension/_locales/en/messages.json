@@ -127,6 +127,10 @@
     "message": "Claude",
     "description": "Claude width group heading"
   },
+  "deepseekWidthGroup": {
+    "message": "DeepSeek",
+    "description": "DeepSeek width group heading"
+  },
   "grokWidthGroup": {
     "message": "Grok",
     "description": "Grok width group heading"
@@ -170,6 +174,14 @@
   "claudeWidthDescription": {
     "message": "Adjust the maximum width of Claude dialog, drag the slider for real-time effect",
     "description": "Description for Claude width setting"
+  },
+  "deepseekWidthLabel": {
+    "message": "Content Width:",
+    "description": "DeepSeek width label"
+  },
+  "deepseekWidthDescription": {
+    "message": "Adjust DeepSeek content width (implemented via horizontal padding), drag the slider for real-time effect",
+    "description": "Description for DeepSeek width setting"
   },
   "grokWidthLabel": {
     "message": "Content Width:",

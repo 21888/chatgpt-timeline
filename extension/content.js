@@ -1,3 +1,18 @@
+const DEEPSEEK_PADDING_MIN = 0;
+const DEEPSEEK_PADDING_MAX = 60;
+const DEFAULT_DEEPSEEK_PADDING = 5;
+const DEFAULT_DEEPSEEK_WIDTH = DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - DEFAULT_DEEPSEEK_PADDING;
+
+function migrateDeepseekWidthSetting(settings) {
+    if (!settings) return { settings, migrated: false };
+    if (settings.deepseekWidthMode === 'width') return { settings, migrated: false };
+    const raw = Number.parseFloat(settings.deepseekWidth);
+    const normalized = Number.isFinite(raw) ? raw : DEFAULT_DEEPSEEK_PADDING;
+    settings.deepseekWidth = DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - normalized;
+    settings.deepseekWidthMode = 'width';
+    return { settings, migrated: true };
+}
+
 const DEFAULT_SETTINGS = {
     timelinePosition: 'right',
     enableDragging: true,
@@ -12,6 +27,8 @@ const DEFAULT_SETTINGS = {
     taskPageWidth: 48,
     geminiWidth: 48,
     claudeWidth: 48,
+    deepseekWidth: DEFAULT_DEEPSEEK_WIDTH,
+    deepseekWidthMode: 'width',
     grokWidth: 85
 };
 
@@ -59,6 +76,20 @@ const SITE_CONFIGS = {
         assistantTextSelector: null,
         conversationRootSelectors: [
             'div[data-test-render-count]',
+            'main'
+        ]
+    },
+    deepseek: {
+        id: 'deepseek',
+        hostMatches: ['chat.deepseek.com', 'deepseek.com'],
+        pathPrefixes: ['/chat/', '/chat', '/c/', '/c'],
+        userTurnSelector: null,
+        allTurnSelector: null,
+        assistantTurnSelector: null,
+        userTextSelector: null,
+        assistantTextSelector: null,
+        conversationRootSelectors: [
+            'div.ds-theme',
             'main'
         ]
     },
@@ -110,7 +141,11 @@ async function loadSettingsCache() {
     try {
         const result = await chrome.storage.local.get(['chatgptTimelineSettings']);
         const saved = result.chatgptTimelineSettings || {};
-        settingsCache = { ...DEFAULT_SETTINGS, ...saved };
+        const { settings: migrated, migrated: didMigrate } = migrateDeepseekWidthSetting({ ...saved });
+        settingsCache = { ...DEFAULT_SETTINGS, ...migrated };
+        if (didMigrate) {
+            try { await chrome.storage.local.set({ chatgptTimelineSettings: settingsCache }); } catch {}
+        }
         settingsCacheLoaded = true;
         return settingsCache;
     } catch (error) {
@@ -533,6 +568,10 @@ class TimelineManager {
             // Apply Claude width setting
             if (this.settings.claudeWidth) {
                 document.documentElement.style.setProperty('--timeline-claude-content-max-width', this.settings.claudeWidth + 'rem');
+            }
+            // Apply DeepSeek width setting
+            if (Number.isFinite(this.settings.deepseekWidth)) {
+                document.documentElement.style.setProperty('--timeline-deepseek-content-width', this.settings.deepseekWidth + 'rem');
             }
             // Apply Grok width setting
             if (this.settings.grokWidth) {
@@ -2632,7 +2671,11 @@ class TimelineManager {
             const result = await chrome.storage.local.get([this.settingsKey]);
             const saved = result[this.settingsKey];
             if (saved) {
-                this.settings = { ...this.settings, ...saved };
+                const { settings: migrated, migrated: didMigrate } = migrateDeepseekWidthSetting({ ...saved });
+                this.settings = { ...this.settings, ...migrated };
+                if (didMigrate) {
+                    try { await chrome.storage.local.set({ [this.settingsKey]: this.settings }); } catch {}
+                }
             }
             settingsCache = { ...DEFAULT_SETTINGS, ...this.settings };
             settingsCacheLoaded = true;
@@ -3613,6 +3656,15 @@ class TimelineManager {
                 console.warn('Failed to update Claude width:', error);
                 sendResponse({ success: false, error: error.message });
             }
+        } else if (request.action === 'updateDeepseekWidth') {
+            try {
+                // Update CSS variable for DeepSeek width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-deepseek-content-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update DeepSeek width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         } else if (request.action === 'updateGrokWidth') {
             try {
                 // Update CSS variable for Grok width (width already includes unit)
@@ -4159,11 +4211,15 @@ async function applyStoredWidthSettings() {
         const taskPageWidth = saved.taskPageWidth ?? 48;
         const geminiWidth = saved.geminiWidth ?? 48;
         const claudeWidth = saved.claudeWidth ?? 48;
+        const deepseekWidth = saved.deepseekWidthMode === 'width'
+            ? (saved.deepseekWidth ?? DEFAULT_DEEPSEEK_WIDTH)
+            : (DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - (saved.deepseekWidth ?? DEFAULT_DEEPSEEK_PADDING));
         const grokWidth = saved.grokWidth ?? 85;
         document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', chatgptWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-task-page-max-width', taskPageWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', geminiWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-claude-content-max-width', claudeWidth + 'rem');
+        document.documentElement.style.setProperty('--timeline-deepseek-content-width', deepseekWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-grok-content-max-width', grokWidth + 'rem');
     } catch (error) {
         console.warn('Failed to apply stored width settings:', error);
@@ -4180,8 +4236,9 @@ async function handleStandaloneMessage(request, sendResponse) {
             const result = await chrome.storage.local.get(['chatgptTimelineSettings']);
             const saved = result.chatgptTimelineSettings || {};
             const merged = { ...saved, ...request.settings };
-            await chrome.storage.local.set({ chatgptTimelineSettings: merged });
-            settingsCache = { ...DEFAULT_SETTINGS, ...merged };
+            const { settings: migrated } = migrateDeepseekWidthSetting({ ...merged });
+            await chrome.storage.local.set({ chatgptTimelineSettings: migrated });
+            settingsCache = { ...DEFAULT_SETTINGS, ...migrated };
             settingsCacheLoaded = true;
             if (merged.chatgptWidth) {
                 document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', merged.chatgptWidth + 'rem');
@@ -4194,6 +4251,9 @@ async function handleStandaloneMessage(request, sendResponse) {
             }
             if (merged.claudeWidth) {
                 document.documentElement.style.setProperty('--timeline-claude-content-max-width', merged.claudeWidth + 'rem');
+            }
+            if (Number.isFinite(migrated.deepseekWidth)) {
+                document.documentElement.style.setProperty('--timeline-deepseek-content-width', migrated.deepseekWidth + 'rem');
             }
             if (merged.grokWidth) {
                 document.documentElement.style.setProperty('--timeline-grok-content-max-width', merged.grokWidth + 'rem');
@@ -4255,6 +4315,17 @@ async function handleStandaloneMessage(request, sendResponse) {
             sendResponse({ success: true });
         } catch (error) {
             console.warn('Failed to update Claude width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateDeepseekWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-deepseek-content-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update DeepSeek width (standalone):', error);
             sendResponse({ success: false, error: error.message });
         }
         return;

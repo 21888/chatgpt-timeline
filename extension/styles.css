@@ -42,6 +42,8 @@
   --timeline-task-page-max-width: 48rem;
   --timeline-gemini-conversation-max-width: 48rem;
   --timeline-claude-content-max-width: 48rem;
+  --timeline-deepseek-content-width: 55rem;
+  --timeline-deepseek-padding-max: 60rem;
   --timeline-grok-content-max-width: 85rem;
 }
 
@@ -66,6 +68,11 @@ user-query.ng-star-inserted {
 /* Claude 对话宽度 */
 html[data-timeline-site="claude"] .max-w-3xl {
   max-width: var(--timeline-claude-content-max-width) !important;
+}
+
+/* DeepSeek 内容宽度（通过左右内边距控制） */
+html[data-timeline-site="deepseek"] div.ds-theme > div > div > div:nth-child(3) div.ds-scroll-area {
+  padding: 0 clamp(0rem, calc(var(--timeline-deepseek-padding-max) - var(--timeline-deepseek-content-width)), var(--timeline-deepseek-padding-max)) !important;
 }
 
 /* Grok 页面宽度 */
