@@ -107,6 +107,18 @@
     "message": "同时控制时间线和目录导航的长按拖拽功能",
     "description": "Description for drag settings"
   },
+  "pageWidthSettings": {
+    "message": "页面宽度",
+    "description": "Page width settings section"
+  },
+  "chatgptWidthGroup": {
+    "message": "ChatGPT",
+    "description": "ChatGPT width group heading"
+  },
+  "geminiWidthGroup": {
+    "message": "Gemini",
+    "description": "Gemini width group heading"
+  },
   "chatgptWidth": {
     "message": "ChatGPT 对话宽度",
     "description": "ChatGPT dialog width setting"
@@ -130,5 +142,13 @@
   "taskPageWidthDescription": {
     "message": "调整任务页面内容的最大宽度，拖动滑块实时生效",
     "description": "Description for task page width setting"
+  },
+  "geminiWidthLabel": {
+    "message": "对话宽度：",
+    "description": "Gemini width label"
+  },
+  "geminiWidthDescription": {
+    "message": "调整 Gemini 对话框的最大宽度，拖动滑块实时生效",
+    "description": "Description for Gemini width setting"
   }
 }

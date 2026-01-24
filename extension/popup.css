@@ -110,6 +110,34 @@ body.dark-mode .setting-section h2 {
     color: #e2e8f0;
 }
 
+.setting-subsection {
+    padding: 12px 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f8fafc;
+    margin-bottom: 16px;
+}
+
+body.dark-mode .setting-subsection {
+    background: rgba(45,52,64,0.6);
+    border-color: #4a5568;
+}
+
+.setting-subsection:last-child {
+    margin-bottom: 0;
+}
+
+.setting-subsection h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #2d3748;
+}
+
+body.dark-mode .setting-subsection h3 {
+    color: #e2e8f0;
+}
+
 .setting-group {
     margin-bottom: 16px;
 }

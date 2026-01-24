@@ -107,6 +107,18 @@
     "message": "Controls long press dragging for both timeline and table of contents navigation",
     "description": "Description for drag settings"
   },
+  "pageWidthSettings": {
+    "message": "Page Width Settings",
+    "description": "Page width settings section"
+  },
+  "chatgptWidthGroup": {
+    "message": "ChatGPT",
+    "description": "ChatGPT width group heading"
+  },
+  "geminiWidthGroup": {
+    "message": "Gemini",
+    "description": "Gemini width group heading"
+  },
   "chatgptWidth": {
     "message": "ChatGPT Dialog Width",
     "description": "ChatGPT dialog width setting"
@@ -130,5 +142,13 @@
   "taskPageWidthDescription": {
     "message": "Adjust the maximum width of task page content, drag the slider for real-time effect",
     "description": "Description for task page width setting"
+  },
+  "geminiWidthLabel": {
+    "message": "Dialog Width:",
+    "description": "Gemini width label"
+  },
+  "geminiWidthDescription": {
+    "message": "Adjust the maximum width of Gemini dialog, drag the slider for real-time effect",
+    "description": "Description for Gemini width setting"
   }
 }

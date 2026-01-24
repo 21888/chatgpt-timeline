@@ -12,7 +12,8 @@ class SettingsManager {
             enableChatGPTTimeline: true,
             enableGeminiTimeline: true,
             chatgptWidth: 48,
-            taskPageWidth: 48
+            taskPageWidth: 48,
+            geminiWidth: 48
         };
         this.settings = { ...this.defaultSettings };
 
@@ -117,6 +118,15 @@ class SettingsManager {
                         console.log('Failed to update task page width in real-time');
                     });
                 }
+
+                if (this.settings.geminiWidth) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateGeminiWidth',
+                        width: this.settings.geminiWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update Gemini width in real-time');
+                    });
+                }
             }
         });
     }
@@ -211,6 +221,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // Gemini 对话宽度滑块
+        const geminiWidthSlider = document.getElementById('geminiWidth');
+        const geminiWidthValue = document.getElementById('geminiWidthValue');
+
+        geminiWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            geminiWidthValue.textContent = value + 'rem';
+            this.settings.geminiWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', value + 'rem');
+            this.notifyContentScript();
+        });
+
+        geminiWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // 重置按钮
         document.getElementById('resetSettings').addEventListener('click', () => {
             this.settings = { ...this.defaultSettings };
@@ -259,6 +286,12 @@ class SettingsManager {
         const taskPageWidthValue = document.getElementById('taskPageWidthValue');
         taskPageWidthSlider.value = this.settings.taskPageWidth;
         taskPageWidthValue.textContent = this.settings.taskPageWidth + 'rem';
+
+        // 更新 Gemini 对话宽度滑块和显示值
+        const geminiWidthSlider = document.getElementById('geminiWidth');
+        const geminiWidthValue = document.getElementById('geminiWidthValue');
+        geminiWidthSlider.value = this.settings.geminiWidth;
+        geminiWidthValue.textContent = this.settings.geminiWidth + 'rem';
     }
 
     updateTOCOptionVisibility() {

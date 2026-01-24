@@ -8,7 +8,8 @@ const DEFAULT_SETTINGS = {
     enableChatGPTTimeline: true,
     enableGeminiTimeline: true,
     chatgptWidth: 48,
-    taskPageWidth: 48
+    taskPageWidth: 48,
+    geminiWidth: 48
 };
 
 const SITE_CONFIGS = {
@@ -472,6 +473,10 @@ class TimelineManager {
             // Apply Codex task page width setting
             if (this.settings.taskPageWidth) {
                 document.documentElement.style.setProperty('--timeline-task-page-max-width', this.settings.taskPageWidth + 'rem');
+            }
+            // Apply Gemini width setting
+            if (this.settings.geminiWidth) {
+                document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', this.settings.geminiWidth + 'rem');
             }
 
             // Idempotent: ensure bar exists, then ensure track + content exist
@@ -3498,6 +3503,15 @@ class TimelineManager {
                 console.warn('Failed to update task page width:', error);
                 sendResponse({ success: false, error: error.message });
             }
+        } else if (request.action === 'updateGeminiWidth') {
+            try {
+                // Update CSS variable for Gemini width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update Gemini width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         }
     }
 }
@@ -4033,8 +4047,10 @@ async function applyStoredWidthSettings() {
         const saved = result.chatgptTimelineSettings || {};
         const chatgptWidth = saved.chatgptWidth ?? 48;
         const taskPageWidth = saved.taskPageWidth ?? 48;
+        const geminiWidth = saved.geminiWidth ?? 48;
         document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', chatgptWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-task-page-max-width', taskPageWidth + 'rem');
+        document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', geminiWidth + 'rem');
     } catch (error) {
         console.warn('Failed to apply stored width settings:', error);
     }
@@ -4058,6 +4074,9 @@ async function handleStandaloneMessage(request, sendResponse) {
             }
             if (merged.taskPageWidth) {
                 document.documentElement.style.setProperty('--timeline-task-page-max-width', merged.taskPageWidth + 'rem');
+            }
+            if (merged.geminiWidth) {
+                document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', merged.geminiWidth + 'rem');
             }
 
             const enabledForSite = isTimelineEnabledForSite(settingsCache, getSiteType());
@@ -4094,6 +4113,17 @@ async function handleStandaloneMessage(request, sendResponse) {
             sendResponse({ success: true });
         } catch (error) {
             console.warn('Failed to update task page width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateGeminiWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update Gemini width (standalone):', error);
             sendResponse({ success: false, error: error.message });
         }
     }
