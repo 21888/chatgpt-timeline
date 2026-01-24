@@ -2,6 +2,10 @@ const DEEPSEEK_PADDING_MIN = 0;
 const DEEPSEEK_PADDING_MAX = 60;
 const DEFAULT_DEEPSEEK_PADDING = 5;
 const DEFAULT_DEEPSEEK_WIDTH = DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - DEFAULT_DEEPSEEK_PADDING;
+const DOUBAO_PADDING_MIN = 0;
+const DOUBAO_PADDING_MAX = 60;
+const DEFAULT_DOUBAO_PADDING = 5;
+const DEFAULT_DOUBAO_WIDTH = DOUBAO_PADDING_MAX + DOUBAO_PADDING_MIN - DEFAULT_DOUBAO_PADDING;
 
 function migrateDeepseekWidthSetting(settings) {
     if (!settings) return { settings, migrated: false };
@@ -27,12 +31,14 @@ class SettingsManager {
             enableChatGPTTimeline: true,
             enableGeminiTimeline: true,
             enableClaudeTimeline: true,
+            enableDoubaoTimeline: true,
             chatgptWidth: 48,
             taskPageWidth: 48,
             geminiWidth: 48,
             claudeWidth: 48,
             deepseekWidth: DEFAULT_DEEPSEEK_WIDTH,
             deepseekWidthMode: 'width',
+            doubaoWidth: DEFAULT_DOUBAO_WIDTH,
             grokWidth: 85
         };
         this.settings = { ...this.defaultSettings };
@@ -170,6 +176,15 @@ class SettingsManager {
                     });
                 }
 
+                if (Number.isFinite(this.settings.doubaoWidth)) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateDoubaoWidth',
+                        width: this.settings.doubaoWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update Doubao width in real-time');
+                    });
+                }
+
                 if (this.settings.grokWidth) {
                     chrome.tabs.sendMessage(tabs[0].id, {
                         action: 'updateGrokWidth',
@@ -215,6 +230,11 @@ class SettingsManager {
 
         document.getElementById('enableClaudeTimeline').addEventListener('change', (e) => {
             this.settings.enableClaudeTimeline = e.target.checked;
+            this.saveSettings();
+        });
+
+        document.getElementById('enableDoubaoTimeline').addEventListener('change', (e) => {
+            this.settings.enableDoubaoTimeline = e.target.checked;
             this.saveSettings();
         });
 
@@ -330,6 +350,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // 豆包 内容宽度滑块
+        const doubaoWidthSlider = document.getElementById('doubaoWidth');
+        const doubaoWidthValue = document.getElementById('doubaoWidthValue');
+
+        doubaoWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            doubaoWidthValue.textContent = value + 'rem';
+            this.settings.doubaoWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-doubao-content-width', this.settings.doubaoWidth + 'rem');
+            this.notifyContentScript();
+        });
+
+        doubaoWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // Grok 内容宽度滑块
         const grokWidthSlider = document.getElementById('grokWidth');
         const grokWidthValue = document.getElementById('grokWidthValue');
@@ -401,6 +438,7 @@ class SettingsManager {
         document.getElementById('enableChatGPTTimeline').checked = this.settings.enableChatGPTTimeline !== false;
         document.getElementById('enableGeminiTimeline').checked = this.settings.enableGeminiTimeline !== false;
         document.getElementById('enableClaudeTimeline').checked = this.settings.enableClaudeTimeline !== false;
+        document.getElementById('enableDoubaoTimeline').checked = this.settings.enableDoubaoTimeline !== false;
 
         // 更新启用目录导航复选框
         document.getElementById('enableTOC').checked = this.settings.enableTOC;
@@ -446,6 +484,12 @@ class SettingsManager {
         const deepseekWidthValue = document.getElementById('deepseekWidthValue');
         deepseekWidthSlider.value = this.settings.deepseekWidth;
         deepseekWidthValue.textContent = this.settings.deepseekWidth + 'rem';
+
+        // 更新 豆包 内容宽度滑块和显示值
+        const doubaoWidthSlider = document.getElementById('doubaoWidth');
+        const doubaoWidthValue = document.getElementById('doubaoWidthValue');
+        doubaoWidthSlider.value = this.settings.doubaoWidth;
+        doubaoWidthValue.textContent = this.settings.doubaoWidth + 'rem';
 
         // 更新 Grok 内容宽度滑块和显示值
         const grokWidthSlider = document.getElementById('grokWidth');

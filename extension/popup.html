@@ -62,6 +62,13 @@
                         <span data-i18n="enableClaudeTimeline">启用 Claude 时间线</span>
                     </label>
                 </div>
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="enableDoubaoTimeline">
+                        <span class="checkmark"></span>
+                        <span data-i18n="enableDoubaoTimeline">启用 豆包 时间线</span>
+                    </label>
+                </div>
             </section>
 
             <!-- 页面宽度设置 -->
@@ -73,6 +80,7 @@
                         <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-gemini" id="width-tab-gemini" data-target="width-panel-gemini" data-i18n="geminiWidthGroup">Gemini</button>
                         <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-claude" id="width-tab-claude" data-target="width-panel-claude" data-i18n="claudeWidthGroup">Claude</button>
                         <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-deepseek" id="width-tab-deepseek" data-target="width-panel-deepseek" data-i18n="deepseekWidthGroup">DeepSeek</button>
+                        <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-doubao" id="width-tab-doubao" data-target="width-panel-doubao" data-i18n="doubaoWidthGroup">豆包</button>
                         <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-grok" id="width-tab-grok" data-target="width-panel-grok" data-i18n="grokWidthGroup">Grok</button>
                     </div>
 
@@ -117,6 +125,15 @@
                             <span id="deepseekWidthValue" class="setting-value">55rem</span>
                         </div>
                         <p class="setting-description" data-i18n="deepseekWidthDescription">调整 DeepSeek 内容宽度（通过左右内边距实现），拖动滑块实时生效</p>
+                    </div>
+
+                    <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-doubao" aria-labelledby="width-tab-doubao" hidden>
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="doubaoWidthLabel">内容宽度：</label>
+                            <input type="range" id="doubaoWidth" min="0" max="60" value="55" class="setting-slider">
+                            <span id="doubaoWidthValue" class="setting-value">55rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="doubaoWidthDescription">调整 豆包 内容宽度（通过左右内边距实现），拖动滑块实时生效</p>
                     </div>
 
                     <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-grok" aria-labelledby="width-tab-grok" hidden>

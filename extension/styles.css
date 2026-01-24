@@ -44,6 +44,8 @@
   --timeline-claude-content-max-width: 48rem;
   --timeline-deepseek-content-width: 55rem;
   --timeline-deepseek-padding-max: 60rem;
+  --timeline-doubao-content-width: 55rem;
+  --timeline-doubao-padding-max: 60rem;
   --timeline-grok-content-max-width: 85rem;
 }
 
@@ -73,6 +75,20 @@ html[data-timeline-site="claude"] .max-w-3xl {
 /* DeepSeek 内容宽度（通过左右内边距控制） */
 html[data-timeline-site="deepseek"] div.ds-theme > div > div > div:nth-child(3) div.ds-scroll-area {
   padding: 0 clamp(0rem, calc(var(--timeline-deepseek-padding-max) - var(--timeline-deepseek-content-width)), var(--timeline-deepseek-padding-max)) !important;
+}
+
+/* 豆包 内容宽度（通过左右内边距控制） */
+html[data-timeline-site="doubao"] div[data-testid="message-list"] > div:nth-child(2) > div > div > div {
+  padding: 0 clamp(0rem, calc(var(--timeline-doubao-padding-max) - var(--timeline-doubao-content-width)), var(--timeline-doubao-padding-max)) !important;
+}
+
+html[data-timeline-site="doubao"] main > div > div:nth-child(2) > div:nth-child(3) {
+  padding: 0 clamp(0rem, calc(var(--timeline-doubao-padding-max) - var(--timeline-doubao-content-width)), var(--timeline-doubao-padding-max)) !important;
+}
+
+html[data-timeline-site="doubao"] main > div > div:nth-child(2) > div:nth-child(3) > div > div,
+html[data-timeline-site="doubao"] main > div > div:nth-child(2) > div:nth-child(3) > div > div > div:nth-child(1) {
+  max-width: unset !important;
 }
 
 /* Grok 页面宽度 */

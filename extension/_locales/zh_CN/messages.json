@@ -35,6 +35,10 @@
     "message": "启用 Claude 时间线",
     "description": "Enable Claude timeline"
   },
+  "enableDoubaoTimeline": {
+    "message": "启用 豆包 时间线",
+    "description": "Enable Doubao timeline"
+  },
   "positionRight": {
     "message": "右侧",
     "description": "Right position"
@@ -131,6 +135,10 @@
     "message": "DeepSeek",
     "description": "DeepSeek width group heading"
   },
+  "doubaoWidthGroup": {
+    "message": "豆包",
+    "description": "Doubao width group heading"
+  },
   "grokWidthGroup": {
     "message": "Grok",
     "description": "Grok width group heading"
@@ -182,6 +190,14 @@
   "deepseekWidthDescription": {
     "message": "调整 DeepSeek 内容宽度（通过左右内边距实现），拖动滑块实时生效",
     "description": "Description for DeepSeek width setting"
+  },
+  "doubaoWidthLabel": {
+    "message": "内容宽度：",
+    "description": "Doubao width label"
+  },
+  "doubaoWidthDescription": {
+    "message": "调整 豆包 内容宽度（通过左右内边距实现），拖动滑块实时生效",
+    "description": "Description for Doubao width setting"
   },
   "grokWidthLabel": {
     "message": "内容宽度：",

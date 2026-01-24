@@ -2,6 +2,10 @@ const DEEPSEEK_PADDING_MIN = 0;
 const DEEPSEEK_PADDING_MAX = 60;
 const DEFAULT_DEEPSEEK_PADDING = 5;
 const DEFAULT_DEEPSEEK_WIDTH = DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - DEFAULT_DEEPSEEK_PADDING;
+const DOUBAO_PADDING_MIN = 0;
+const DOUBAO_PADDING_MAX = 60;
+const DEFAULT_DOUBAO_PADDING = 5;
+const DEFAULT_DOUBAO_WIDTH = DOUBAO_PADDING_MAX + DOUBAO_PADDING_MIN - DEFAULT_DOUBAO_PADDING;
 
 function migrateDeepseekWidthSetting(settings) {
     if (!settings) return { settings, migrated: false };
@@ -23,12 +27,14 @@ const DEFAULT_SETTINGS = {
     enableChatGPTTimeline: true,
     enableGeminiTimeline: true,
     enableClaudeTimeline: true,
+    enableDoubaoTimeline: true,
     chatgptWidth: 48,
     taskPageWidth: 48,
     geminiWidth: 48,
     claudeWidth: 48,
     deepseekWidth: DEFAULT_DEEPSEEK_WIDTH,
     deepseekWidthMode: 'width',
+    doubaoWidth: DEFAULT_DOUBAO_WIDTH,
     grokWidth: 85
 };
 
@@ -93,6 +99,20 @@ const SITE_CONFIGS = {
             'main'
         ]
     },
+    doubao: {
+        id: 'doubao',
+        hostMatches: ['www.doubao.com', 'doubao.com'],
+        pathPrefixes: ['/chat/', '/chat', '/'],
+        userTurnSelector: 'div[data-testid="send_message"]',
+        allTurnSelector: 'div[data-testid="message-list"] > div:nth-child(2) > div > div > div',
+        assistantTurnSelector: 'div[data-testid="receive_message"]',
+        userTextSelector: null,
+        assistantTextSelector: null,
+        conversationRootSelectors: [
+            'div[data-testid="message-list"]',
+            'main'
+        ]
+    },
     grok: {
         id: 'grok',
         hostMatches: ['grok.com'],
@@ -131,6 +151,7 @@ function isTimelineEnabledForSite(settings, siteType = getSiteType()) {
     if (siteType === 'gemini') return settings.enableGeminiTimeline !== false;
     if (siteType === 'chatgpt') return settings.enableChatGPTTimeline !== false;
     if (siteType === 'claude') return settings.enableClaudeTimeline !== false;
+    if (siteType === 'doubao') return settings.enableDoubaoTimeline !== false;
     return false;
 }
 
@@ -173,12 +194,15 @@ function isSupportedConversationUrl(url) {
 
 function getFirstTurnElementForSite() {
     const config = getSiteConfig();
-    return document.querySelector(config.allTurnSelector) ||
-           document.querySelector(config.userTurnSelector);
+    const allSelector = config.allTurnSelector;
+    const userSelector = config.userTurnSelector;
+    return (allSelector ? document.querySelector(allSelector) : null) ||
+           (userSelector ? document.querySelector(userSelector) : null);
 }
 
 function getAllTurnElementsForSite() {
     const config = getSiteConfig();
+    if (!config.allTurnSelector) return [];
     return Array.from(document.querySelectorAll(config.allTurnSelector));
 }
 
@@ -573,6 +597,10 @@ class TimelineManager {
             if (Number.isFinite(this.settings.deepseekWidth)) {
                 document.documentElement.style.setProperty('--timeline-deepseek-content-width', this.settings.deepseekWidth + 'rem');
             }
+            // Apply Doubao width setting
+            if (Number.isFinite(this.settings.doubaoWidth)) {
+                document.documentElement.style.setProperty('--timeline-doubao-content-width', this.settings.doubaoWidth + 'rem');
+            }
             // Apply Grok width setting
             if (this.settings.grokWidth) {
                 document.documentElement.style.setProperty('--timeline-grok-content-max-width', this.settings.grokWidth + 'rem');
@@ -811,6 +839,7 @@ class TimelineManager {
     getAllTurnElements() {
         if (!this.conversationContainer) return [];
         const siteConfig = getSiteConfig(this.siteType);
+        if (!siteConfig?.allTurnSelector) return [];
         return Array.from(this.conversationContainer.querySelectorAll(siteConfig.allTurnSelector));
     }
 
@@ -864,11 +893,18 @@ class TimelineManager {
         // Find the corresponding ChatGPT reply for this user message
         const allTurns = this.getAllTurnElements();
         const currentIndex = allTurns.indexOf(userElement);
+        const siteConfig = getSiteConfig(this.siteType);
+        const isAssistantTurn = (turn) => {
+            if (!turn) return false;
+            if (turn.dataset?.turn === 'assistant') return true;
+            if (siteConfig?.assistantTurnSelector && turn.matches(siteConfig.assistantTurnSelector)) return true;
+            return false;
+        };
 
         // Look for the next assistant turn (ChatGPT's reply) after this user turn
         for (let i = currentIndex + 1; i < allTurns.length; i++) {
             const turn = allTurns[i];
-            if (turn.dataset.turn === 'assistant') {
+            if (isAssistantTurn(turn)) {
                 const replyText = this.normalizeText(turn.textContent || '');
                 // Return the reply if it's not empty and not just the incomplete "哈哈，我当然不"
                 if (replyText && replyText.length > 10) { // 确保回复有足够的内容
@@ -3665,6 +3701,15 @@ class TimelineManager {
                 console.warn('Failed to update DeepSeek width:', error);
                 sendResponse({ success: false, error: error.message });
             }
+        } else if (request.action === 'updateDoubaoWidth') {
+            try {
+                // Update CSS variable for Doubao width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-doubao-content-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update Doubao width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         } else if (request.action === 'updateGrokWidth') {
             try {
                 // Update CSS variable for Grok width (width already includes unit)
@@ -4020,6 +4065,7 @@ function hasRequiredConversationElements(forceCheck = false) {
 
     let foundElement = null;
     for (const selector of possibleSelectors) {
+        if (!selector) continue;
         const element = document.querySelector(selector);
         if (element) {
             foundElement = element;
@@ -4214,12 +4260,14 @@ async function applyStoredWidthSettings() {
         const deepseekWidth = saved.deepseekWidthMode === 'width'
             ? (saved.deepseekWidth ?? DEFAULT_DEEPSEEK_WIDTH)
             : (DEEPSEEK_PADDING_MAX + DEEPSEEK_PADDING_MIN - (saved.deepseekWidth ?? DEFAULT_DEEPSEEK_PADDING));
+        const doubaoWidth = saved.doubaoWidth ?? DEFAULT_DOUBAO_WIDTH;
         const grokWidth = saved.grokWidth ?? 85;
         document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', chatgptWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-task-page-max-width', taskPageWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', geminiWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-claude-content-max-width', claudeWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-deepseek-content-width', deepseekWidth + 'rem');
+        document.documentElement.style.setProperty('--timeline-doubao-content-width', doubaoWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-grok-content-max-width', grokWidth + 'rem');
     } catch (error) {
         console.warn('Failed to apply stored width settings:', error);
@@ -4254,6 +4302,9 @@ async function handleStandaloneMessage(request, sendResponse) {
             }
             if (Number.isFinite(migrated.deepseekWidth)) {
                 document.documentElement.style.setProperty('--timeline-deepseek-content-width', migrated.deepseekWidth + 'rem');
+            }
+            if (Number.isFinite(merged.doubaoWidth)) {
+                document.documentElement.style.setProperty('--timeline-doubao-content-width', merged.doubaoWidth + 'rem');
             }
             if (merged.grokWidth) {
                 document.documentElement.style.setProperty('--timeline-grok-content-max-width', merged.grokWidth + 'rem');
@@ -4326,6 +4377,17 @@ async function handleStandaloneMessage(request, sendResponse) {
             sendResponse({ success: true });
         } catch (error) {
             console.warn('Failed to update DeepSeek width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateDoubaoWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-doubao-content-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update Doubao width (standalone):', error);
             sendResponse({ success: false, error: error.message });
         }
         return;

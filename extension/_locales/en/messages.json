@@ -35,6 +35,10 @@
     "message": "Enable Claude Timeline",
     "description": "Enable Claude timeline"
   },
+  "enableDoubaoTimeline": {
+    "message": "Enable Doubao Timeline",
+    "description": "Enable Doubao timeline"
+  },
   "positionRight": {
     "message": "Right",
     "description": "Right position"
@@ -131,6 +135,10 @@
     "message": "DeepSeek",
     "description": "DeepSeek width group heading"
   },
+  "doubaoWidthGroup": {
+    "message": "Doubao",
+    "description": "Doubao width group heading"
+  },
   "grokWidthGroup": {
     "message": "Grok",
     "description": "Grok width group heading"
@@ -182,6 +190,14 @@
   "deepseekWidthDescription": {
     "message": "Adjust DeepSeek content width (implemented via horizontal padding), drag the slider for real-time effect",
     "description": "Description for DeepSeek width setting"
+  },
+  "doubaoWidthLabel": {
+    "message": "Content Width:",
+    "description": "Doubao width label"
+  },
+  "doubaoWidthDescription": {
+    "message": "Adjust Doubao content width (implemented via horizontal padding), drag the slider for real-time effect",
+    "description": "Description for Doubao width setting"
   },
   "grokWidthLabel": {
     "message": "Content Width:",
