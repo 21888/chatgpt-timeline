@@ -106,5 +106,17 @@
   "chatgptWidthDescription": {
     "message": "Adjust the maximum width of ChatGPT dialog, drag the slider for real-time effect",
     "description": "Description for ChatGPT width setting"
+  },
+  "taskPageWidth": {
+    "message": "Task Page Width",
+    "description": "Task page width setting"
+  },
+  "taskPageWidthLabel": {
+    "message": "Page Width:",
+    "description": "Task page width label"
+  },
+  "taskPageWidthDescription": {
+    "message": "Adjust the maximum width of task page content, drag the slider for real-time effect",
+    "description": "Description for task page width setting"
   }
 }

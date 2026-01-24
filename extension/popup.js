@@ -9,7 +9,8 @@ class SettingsManager {
             tocWidth: 280,
             tocPosition: 'left',
             enableLongPressDrag: true,
-            chatgptWidth: 48
+            chatgptWidth: 48,
+            taskPageWidth: 48
         };
         this.settings = { ...this.defaultSettings };
 
@@ -105,6 +106,15 @@ class SettingsManager {
                         console.log('Failed to update ChatGPT width in real-time');
                     });
                 }
+
+                if (this.settings.taskPageWidth) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateTaskPageWidth',
+                        width: this.settings.taskPageWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update task page width in real-time');
+                    });
+                }
             }
         });
     }
@@ -171,6 +181,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // 任务页宽度滑块
+        const taskPageWidthSlider = document.getElementById('taskPageWidth');
+        const taskPageWidthValue = document.getElementById('taskPageWidthValue');
+
+        taskPageWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            taskPageWidthValue.textContent = value + 'rem';
+            this.settings.taskPageWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-task-page-max-width', value + 'rem');
+            this.notifyContentScript();
+        });
+
+        taskPageWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // 重置按钮
         document.getElementById('resetSettings').addEventListener('click', () => {
             this.settings = { ...this.defaultSettings };
@@ -209,6 +236,12 @@ class SettingsManager {
         const chatgptWidthValue = document.getElementById('chatgptWidthValue');
         chatgptWidthSlider.value = this.settings.chatgptWidth;
         chatgptWidthValue.textContent = this.settings.chatgptWidth + 'rem';
+
+        // 更新任务页宽度滑块和显示值
+        const taskPageWidthSlider = document.getElementById('taskPageWidth');
+        const taskPageWidthValue = document.getElementById('taskPageWidthValue');
+        taskPageWidthSlider.value = this.settings.taskPageWidth;
+        taskPageWidthValue.textContent = this.settings.taskPageWidth + 'rem';
     }
 
     updateTOCOptionVisibility() {

@@ -106,5 +106,17 @@
   "chatgptWidthDescription": {
     "message": "调整 ChatGPT 对话框的最大宽度，拖动滑块实时生效",
     "description": "Description for ChatGPT width setting"
+  },
+  "taskPageWidth": {
+    "message": "任务页宽度",
+    "description": "Task page width setting"
+  },
+  "taskPageWidthLabel": {
+    "message": "页面宽度：",
+    "description": "Task page width label"
+  },
+  "taskPageWidthDescription": {
+    "message": "调整任务页面内容的最大宽度，拖动滑块实时生效",
+    "description": "Description for task page width setting"
   }
 }

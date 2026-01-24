@@ -109,7 +109,8 @@ class TimelineManager {
             enableTOC: true, // 默认启用目录导航
             tocWidth: 280,
             tocPosition: 'left',
-            chatgptWidth: 48
+            chatgptWidth: 48,
+            taskPageWidth: 48
         };
 
         this.debouncedRecalculateAndRender = this.debounce(this.recalculateAndRenderMarkers, 350);
@@ -348,6 +349,10 @@ class TimelineManager {
             // Apply ChatGPT width setting
             if (this.settings.chatgptWidth) {
                 document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', this.settings.chatgptWidth + 'rem');
+            }
+            // Apply Codex task page width setting
+            if (this.settings.taskPageWidth) {
+                document.documentElement.style.setProperty('--timeline-task-page-max-width', this.settings.taskPageWidth + 'rem');
             }
 
             // Idempotent: ensure bar exists, then ensure track + content exist
@@ -3274,6 +3279,15 @@ class TimelineManager {
                 console.warn('Failed to update ChatGPT width:', error);
                 sendResponse({ success: false, error: error.message });
             }
+        } else if (request.action === 'updateTaskPageWidth') {
+            try {
+                // Update CSS variable for task page width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-task-page-max-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update task page width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         }
     }
 }
@@ -3780,10 +3794,74 @@ function throttle(func, limit) {
 // Start scroll listener after initial attempts
 setTimeout(addScrollListenerForInit, 2000);
 
+async function applyStoredWidthSettings() {
+    try {
+        const result = await chrome.storage.local.get(['chatgptTimelineSettings']);
+        const saved = result.chatgptTimelineSettings || {};
+        const chatgptWidth = saved.chatgptWidth ?? 48;
+        const taskPageWidth = saved.taskPageWidth ?? 48;
+        document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', chatgptWidth + 'rem');
+        document.documentElement.style.setProperty('--timeline-task-page-max-width', taskPageWidth + 'rem');
+    } catch (error) {
+        console.warn('Failed to apply stored width settings:', error);
+    }
+}
+
+async function handleStandaloneMessage(request, sendResponse) {
+    if (request.action === 'updateSettings') {
+        try {
+            if (request.settings && request.settings.hasOwnProperty('enableDragging') &&
+                !request.settings.hasOwnProperty('enableLongPressDrag')) {
+                request.settings.enableLongPressDrag = request.settings.enableDragging;
+            }
+            const result = await chrome.storage.local.get(['chatgptTimelineSettings']);
+            const saved = result.chatgptTimelineSettings || {};
+            const merged = { ...saved, ...request.settings };
+            await chrome.storage.local.set({ chatgptTimelineSettings: merged });
+            if (merged.chatgptWidth) {
+                document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', merged.chatgptWidth + 'rem');
+            }
+            if (merged.taskPageWidth) {
+                document.documentElement.style.setProperty('--timeline-task-page-max-width', merged.taskPageWidth + 'rem');
+            }
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to handle settings update (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateChatGPTWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update ChatGPT width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateTaskPageWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-task-page-max-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update task page width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+    }
+}
+
+applyStoredWidthSettings();
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (timelineManagerInstance) {
         timelineManagerInstance.handleMessage(request, sender, sendResponse);
+    } else {
+        handleStandaloneMessage(request, sendResponse);
     }
     return true; // Keep message channel open for async response
 });

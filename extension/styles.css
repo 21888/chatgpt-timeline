@@ -32,10 +32,17 @@
     --timeline-tooltip-gap-box: 4px;     /* rectangle edge to timeline */
     /* 宽度限制 */
     --timeline-chatgpt-html-content-max-width: 48rem;
+    --timeline-task-page-max-width: 48rem;
 }
 /* 宽度限制 */
 article.text-token-text-primary div div[tabindex]{
     --thread-content-max-width: var(--timeline-chatgpt-html-content-max-width);
+}
+/* Codex 任务页宽度（对应 xl:max-w-[48rem]） */
+@media (min-width: 1280px) {
+    div[class~="@container"][class*="xl:max-w-[48rem]"] {
+        max-width: var(--timeline-task-page-max-width) !important;
+    }
 }
 /* Override variables when ChatGPT's dark mode is active */
 html.dark {
