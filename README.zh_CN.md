@@ -2,21 +2,31 @@
   <img src="public/preview.png" alt="Plugin Preview"">
 </p>
 
-# ChatGPT 时间轴插件
+# AI 对话时间轴插件
 
 > 🇺🇸 English version available in [here](./README.md)
 
-为 ChatGPT 对话页面添加交互式时间轴 - 点击导航、拖拽定位、自适应主题。
+为 AI 对话页面添加交互式时间轴（ChatGPT / Gemini / Claude / DeepSeek / 豆包 / Grok）- 点击导航、拖拽定位、自适应主题。
+
+## ✅ 支持平台
+
+- ChatGPT
+- Gemini
+- Claude
+- DeepSeek
+- 豆包
+- Grok
 
 ## ✨ 插件功能
 
 - 📍 **可点击锚点**，瞬间跳转至任意消息
 - 🧭 **视觉时间轴**，快速定位对话要点
-- 🌗 **主题自适应**，适配 ChatGPT 浅色/深色模式
+- 🌐 **多平台适配**，优化支持 ChatGPT、Gemini、Claude、DeepSeek、豆包、Grok
+- 🌗 **主题自适应**，适配各平台的浅色/深色模式
 - ⚙️ **自定义设置**，可调整位置和行为
 - 📋 **目录导航**，带编号的消息索引侧边栏
 - 🖱️ **拖拽界面**，自由移动至偏好位置
-- 📏 **对话宽度调整**，可自定义 ChatGPT 对话框宽度（20-150rem）
+- 📏 **对话宽度调整**，可分别设置 ChatGPT/Gemini/Claude/Grok 对话框宽度（20-150rem），以及 DeepSeek/豆包 内容宽度（通过内边距 0-60rem）
 - 📐 **响应式定位**，目录导航面板使用百分比坐标，自适应窗口大小变化
 
 ---
@@ -25,7 +35,7 @@
 
 **[从 Chrome 应用商店安装](https://chromewebstore.google.com/detail/eghgeolmbcndfebncajjhbpohnnegdkm?authuser=0&hl=zh_CN)**
 
-> 安装完成后，打开任意 ChatGPT 对话页面即可自动显示时间轴。
+> 安装完成后，打开支持的 AI 对话页面（ChatGPT、Gemini、Claude、DeepSeek、豆包、Grok）即可自动显示时间轴。
 
 ## ⚙️ 设置选项
 
@@ -46,8 +56,8 @@
 - **宽度设置** - 调整目录面板宽度（200-400px）
 - **位置选择** - 选择左侧或右侧显示
 
-### ChatGPT 对话宽度调整
-- **对话宽度** - 调整 ChatGPT 对话框的最大宽度（20-150rem）
+### 对话宽度调整（按平台）
+- **对话宽度** - 调整 ChatGPT/Gemini/Claude/Grok 对话框最大宽度（20-150rem），以及 DeepSeek/豆包 内容宽度（通过内边距 0-60rem）
 - **默认值** - 48rem，提供最佳阅读体验
 - **实时调整** - 拖动滑块即可即时看到效果
 
@@ -61,7 +71,7 @@
 所有设置都会自动保存，下次页面加载时会恢复您的偏好配置。
 
 
-我们希望将这种高效的时间轴式导航方式带到 ChatGPT 用户社区。
+我们希望将这种高效的时间轴式导航方式带到 AI 用户社区。
 
 ## 📄 开源协议
 

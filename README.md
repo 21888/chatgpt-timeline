@@ -6,17 +6,27 @@
 
 > 🇨🇳 查看中文版：[README.zh_CN.md](./README.zh_CN.md)
 
-Interactive timeline for ChatGPT conversations - click to navigate, drag to reposition, adapts to themes.
+Interactive timeline for AI conversations (ChatGPT, Gemini, Claude, DeepSeek, Doubao, Grok) - click to navigate, drag to reposition, adapts to themes.
+
+## ✅ Supported Platforms
+
+- ChatGPT
+- Gemini
+- Claude
+- DeepSeek
+- Doubao
+- Grok
 
 ## ✨ Features
 
 - 📍 **Clickable markers** for instant navigation to any message
 - 🧭 **Quick jump** to conversation points with visual timeline
-- 🌗 **Theme adaptive** - works with ChatGPT's light/dark modes
+- 🌐 **Multi-platform** - optimized for ChatGPT, Gemini, Claude, DeepSeek, Doubao, and Grok
+- 🌗 **Theme adaptive** - matches light/dark modes on supported platforms
 - ⚙️ **Customizable** position and behavior settings
 - 📋 **Table of Contents** sidebar with message index
 - 🖱️ **Draggable interface** for flexible placement
-- 📏 **Dialog width adjustment** - Customize ChatGPT dialog width (20-150rem)
+- 📏 **Dialog width adjustment** - Per-platform width controls for ChatGPT/Gemini/Claude/Grok (20-150rem) and DeepSeek/Doubao (padding-based 0-60rem)
 - 📐 **Responsive positioning** - TOC panel adapts to window resizing using percentage-based coordinates
 
 ---
@@ -25,7 +35,7 @@ Interactive timeline for ChatGPT conversations - click to navigate, drag to repo
 
 **[Install from Chrome Web Store](https://chromewebstore.google.com/detail/eghgeolmbcndfebncajjhbpohnnegdkm?authuser=0&hl=zh_CN)**
 
-> Works with any ChatGPT conversation page. Timeline appears automatically after installation.
+> Works with supported AI conversation pages (ChatGPT, Gemini, Claude, DeepSeek, Doubao, Grok). Timeline appears automatically after installation.
 
 ## ⚙️ Settings
 
@@ -46,8 +56,8 @@ Click the extension icon in your browser toolbar to access the settings panel:
 - **Width** - Adjust TOC panel width (200-400px)
 - **Position** - Choose left or right side placement
 
-### ChatGPT Dialog Width
-- **Dialog Width** - Adjust the maximum width of ChatGPT dialog (20-150rem)
+### Dialog Width (per platform)
+- **Dialog Width** - Adjust the maximum content width for ChatGPT/Gemini/Claude/Grok (20-150rem) and DeepSeek/Doubao (padding-based 0-60rem)
 - **Default** - 48rem for optimal reading experience
 - **Real-time adjustment** - Drag the slider for instant visual feedback
 
