@@ -66,62 +66,67 @@
 
             <!-- 页面宽度设置 -->
             <section class="setting-section">
-                <h2 data-i18n="pageWidthSettings">页面宽度</h2>
-                <div class="setting-subsection">
-                    <h3 data-i18n="chatgptWidthGroup">ChatGPT</h3>
-                    <div class="setting-group">
-                        <label class="setting-label" data-i18n="chatgptWidthLabel">对话宽度：</label>
-                        <input type="range" id="chatgptWidth" min="20" max="150" value="48" class="setting-slider">
-                        <span id="chatgptWidthValue" class="setting-value">48rem</span>
+                <h2 id="pageWidthHeading" data-i18n="pageWidthSettings">页面宽度</h2>
+                <div class="width-tabs" id="pageWidthTabs">
+                    <div class="width-tab-list" role="tablist" aria-labelledby="pageWidthHeading">
+                        <button type="button" class="width-tab is-active" role="tab" aria-selected="true" aria-controls="width-panel-chatgpt" id="width-tab-chatgpt" data-target="width-panel-chatgpt" data-i18n="chatgptWidthGroup">ChatGPT</button>
+                        <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-gemini" id="width-tab-gemini" data-target="width-panel-gemini" data-i18n="geminiWidthGroup">Gemini</button>
+                        <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-claude" id="width-tab-claude" data-target="width-panel-claude" data-i18n="claudeWidthGroup">Claude</button>
+                        <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-deepseek" id="width-tab-deepseek" data-target="width-panel-deepseek" data-i18n="deepseekWidthGroup">DeepSeek</button>
+                        <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-grok" id="width-tab-grok" data-target="width-panel-grok" data-i18n="grokWidthGroup">Grok</button>
                     </div>
-                    <p class="setting-description" data-i18n="chatgptWidthDescription">调整 ChatGPT 对话框的最大宽度，拖动滑块实时生效</p>
 
-                    <div class="setting-group">
-                        <label class="setting-label" data-i18n="taskPageWidthLabel">页面宽度：</label>
-                        <input type="range" id="taskPageWidth" min="20" max="150" value="48" class="setting-slider">
-                        <span id="taskPageWidthValue" class="setting-value">48rem</span>
-                    </div>
-                    <p class="setting-description" data-i18n="taskPageWidthDescription">调整任务页面内容的最大宽度，拖动滑块实时生效</p>
-                </div>
+                    <div class="setting-subsection width-tab-panel is-active" role="tabpanel" id="width-panel-chatgpt" aria-labelledby="width-tab-chatgpt">
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="chatgptWidthLabel">对话宽度：</label>
+                            <input type="range" id="chatgptWidth" min="20" max="150" value="48" class="setting-slider">
+                            <span id="chatgptWidthValue" class="setting-value">48rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="chatgptWidthDescription">调整 ChatGPT 对话框的最大宽度，拖动滑块实时生效</p>
 
-                <div class="setting-subsection">
-                    <h3 data-i18n="geminiWidthGroup">Gemini</h3>
-                    <div class="setting-group">
-                        <label class="setting-label" data-i18n="geminiWidthLabel">对话宽度：</label>
-                        <input type="range" id="geminiWidth" min="20" max="150" value="48" class="setting-slider">
-                        <span id="geminiWidthValue" class="setting-value">48rem</span>
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="taskPageWidthLabel">页面宽度：</label>
+                            <input type="range" id="taskPageWidth" min="20" max="150" value="48" class="setting-slider">
+                            <span id="taskPageWidthValue" class="setting-value">48rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="taskPageWidthDescription">调整任务页面内容的最大宽度，拖动滑块实时生效</p>
                     </div>
-                    <p class="setting-description" data-i18n="geminiWidthDescription">调整 Gemini 对话框的最大宽度，拖动滑块实时生效</p>
-                </div>
 
-                <div class="setting-subsection">
-                    <h3 data-i18n="claudeWidthGroup">Claude</h3>
-                    <div class="setting-group">
-                        <label class="setting-label" data-i18n="claudeWidthLabel">对话宽度：</label>
-                        <input type="range" id="claudeWidth" min="20" max="150" value="48" class="setting-slider">
-                        <span id="claudeWidthValue" class="setting-value">48rem</span>
+                    <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-gemini" aria-labelledby="width-tab-gemini" hidden>
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="geminiWidthLabel">对话宽度：</label>
+                            <input type="range" id="geminiWidth" min="20" max="150" value="48" class="setting-slider">
+                            <span id="geminiWidthValue" class="setting-value">48rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="geminiWidthDescription">调整 Gemini 对话框的最大宽度，拖动滑块实时生效</p>
                     </div>
-                    <p class="setting-description" data-i18n="claudeWidthDescription">调整 Claude 对话框的最大宽度，拖动滑块实时生效</p>
-                </div>
 
-                <div class="setting-subsection">
-                    <h3 data-i18n="deepseekWidthGroup">DeepSeek</h3>
-                    <div class="setting-group">
-                        <label class="setting-label" data-i18n="deepseekWidthLabel">内容宽度：</label>
-                        <input type="range" id="deepseekWidth" min="0" max="60" value="55" class="setting-slider">
-                        <span id="deepseekWidthValue" class="setting-value">55rem</span>
+                    <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-claude" aria-labelledby="width-tab-claude" hidden>
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="claudeWidthLabel">对话宽度：</label>
+                            <input type="range" id="claudeWidth" min="20" max="150" value="48" class="setting-slider">
+                            <span id="claudeWidthValue" class="setting-value">48rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="claudeWidthDescription">调整 Claude 对话框的最大宽度，拖动滑块实时生效</p>
                     </div>
-                    <p class="setting-description" data-i18n="deepseekWidthDescription">调整 DeepSeek 内容宽度（通过左右内边距实现），拖动滑块实时生效</p>
-                </div>
 
-                <div class="setting-subsection">
-                    <h3 data-i18n="grokWidthGroup">Grok</h3>
-                    <div class="setting-group">
-                        <label class="setting-label" data-i18n="grokWidthLabel">内容宽度：</label>
-                        <input type="range" id="grokWidth" min="20" max="150" value="85" class="setting-slider">
-                        <span id="grokWidthValue" class="setting-value">85rem</span>
+                    <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-deepseek" aria-labelledby="width-tab-deepseek" hidden>
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="deepseekWidthLabel">内容宽度：</label>
+                            <input type="range" id="deepseekWidth" min="0" max="60" value="55" class="setting-slider">
+                            <span id="deepseekWidthValue" class="setting-value">55rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="deepseekWidthDescription">调整 DeepSeek 内容宽度（通过左右内边距实现），拖动滑块实时生效</p>
                     </div>
-                    <p class="setting-description" data-i18n="grokWidthDescription">调整 Grok 页面内容的最大宽度，拖动滑块实时生效</p>
+
+                    <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-grok" aria-labelledby="width-tab-grok" hidden>
+                        <div class="setting-group">
+                            <label class="setting-label" data-i18n="grokWidthLabel">内容宽度：</label>
+                            <input type="range" id="grokWidth" min="20" max="150" value="85" class="setting-slider">
+                            <span id="grokWidthValue" class="setting-value">85rem</span>
+                        </div>
+                        <p class="setting-description" data-i18n="grokWidthDescription">调整 Grok 页面内容的最大宽度，拖动滑块实时生效</p>
+                    </div>
                 </div>
             </section>
 

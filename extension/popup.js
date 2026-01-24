@@ -188,6 +188,8 @@ class SettingsManager {
             i18n.setLanguage(e.target.value);
         });
 
+        this.setupWidthTabs();
+
         // 进度条位置选择
         document.getElementById('timelinePosition').addEventListener('change', (e) => {
             this.settings.timelinePosition = e.target.value;
@@ -351,6 +353,38 @@ class SettingsManager {
             this.updateUI();
             this.saveSettings();
         });
+    }
+
+    setupWidthTabs() {
+        const tabs = Array.from(document.querySelectorAll('.width-tab'));
+        const panels = Array.from(document.querySelectorAll('.width-tab-panel'));
+
+        if (!tabs.length || !panels.length) {
+            return;
+        }
+
+        const activateTab = (tab) => {
+            const targetId = tab.getAttribute('data-target');
+            tabs.forEach((item) => {
+                const isActive = item === tab;
+                item.classList.toggle('is-active', isActive);
+                item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                item.tabIndex = isActive ? 0 : -1;
+            });
+
+            panels.forEach((panel) => {
+                const isActive = panel.id === targetId;
+                panel.classList.toggle('is-active', isActive);
+                panel.hidden = !isActive;
+            });
+        };
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => activateTab(tab));
+        });
+
+        const initialTab = tabs.find((tab) => tab.classList.contains('is-active')) || tabs[0];
+        activateTab(initialTab);
     }
 
     updateUI() {
