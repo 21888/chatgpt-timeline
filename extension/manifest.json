@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "__MSG_extensionName__",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "__MSG_extensionDescription__",
   "action": {
     "default_popup": "popup.html",
@@ -21,7 +21,8 @@
     {
       "matches": [
         "https://chatgpt.com/*",
-        "https://chat.openai.com/*"
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*"
       ],
       "js": ["content.js"],
       "css": ["styles.css"]

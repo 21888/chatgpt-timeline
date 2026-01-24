@@ -19,6 +19,18 @@
     "message": "Timeline Display Position",
     "description": "Timeline position setting"
   },
+  "timelineSources": {
+    "message": "Timeline Sources",
+    "description": "Timeline sources section"
+  },
+  "enableChatGPTTimeline": {
+    "message": "Enable ChatGPT Timeline",
+    "description": "Enable ChatGPT timeline"
+  },
+  "enableGeminiTimeline": {
+    "message": "Enable Gemini Timeline",
+    "description": "Enable Gemini timeline"
+  },
   "positionRight": {
     "message": "Right",
     "description": "Right position"

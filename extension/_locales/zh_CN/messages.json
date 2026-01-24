@@ -19,6 +19,18 @@
     "message": "时间线显示位置",
     "description": "Timeline position setting"
   },
+  "timelineSources": {
+    "message": "时间线启用站点",
+    "description": "Timeline sources section"
+  },
+  "enableChatGPTTimeline": {
+    "message": "启用 ChatGPT 时间线",
+    "description": "Enable ChatGPT timeline"
+  },
+  "enableGeminiTimeline": {
+    "message": "启用 Gemini 时间线",
+    "description": "Enable Gemini timeline"
+  },
   "positionRight": {
     "message": "右侧",
     "description": "Right position"

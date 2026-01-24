@@ -9,6 +9,8 @@ class SettingsManager {
             tocWidth: 280,
             tocPosition: 'left',
             enableLongPressDrag: true,
+            enableChatGPTTimeline: true,
+            enableGeminiTimeline: true,
             chatgptWidth: 48,
             taskPageWidth: 48
         };
@@ -137,6 +139,17 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // 站点开关
+        document.getElementById('enableChatGPTTimeline').addEventListener('change', (e) => {
+            this.settings.enableChatGPTTimeline = e.target.checked;
+            this.saveSettings();
+        });
+
+        document.getElementById('enableGeminiTimeline').addEventListener('change', (e) => {
+            this.settings.enableGeminiTimeline = e.target.checked;
+            this.saveSettings();
+        });
+
         // 启用目录导航复选框
         document.getElementById('enableTOC').addEventListener('change', (e) => {
             this.settings.enableTOC = e.target.checked;
@@ -215,6 +228,10 @@ class SettingsManager {
 
         // 更新允许长按拖拽复选框
         document.getElementById('enableDragging').checked = this.settings.enableLongPressDrag;
+
+        // 更新站点开关
+        document.getElementById('enableChatGPTTimeline').checked = this.settings.enableChatGPTTimeline !== false;
+        document.getElementById('enableGeminiTimeline').checked = this.settings.enableGeminiTimeline !== false;
 
         // 更新启用目录导航复选框
         document.getElementById('enableTOC').checked = this.settings.enableTOC;

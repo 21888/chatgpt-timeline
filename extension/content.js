@@ -1,8 +1,122 @@
+const DEFAULT_SETTINGS = {
+    timelinePosition: 'right',
+    enableDragging: true,
+    enableLongPressDrag: true,
+    enableTOC: true,
+    tocWidth: 280,
+    tocPosition: 'left',
+    enableChatGPTTimeline: true,
+    enableGeminiTimeline: true,
+    chatgptWidth: 48,
+    taskPageWidth: 48
+};
+
+const SITE_CONFIGS = {
+    chatgpt: {
+        id: 'chatgpt',
+        hostMatches: ['chatgpt.com', 'chat.openai.com'],
+        pathPrefixes: ['/c/', '/g/'],
+        userTurnSelector: 'article[data-turn="user"]',
+        allTurnSelector: 'article[data-turn-id]',
+        assistantTurnSelector: 'article[data-turn="assistant"]',
+        userTextSelector: null,
+        assistantTextSelector: null,
+        conversationRootSelectors: [
+            'article[data-turn-id]',
+            '[data-testid="conversation-turn"]',
+            '.conversation-turn'
+        ]
+    },
+    gemini: {
+        id: 'gemini',
+        hostMatches: ['gemini.google.com'],
+        pathPrefixes: ['/app/', '/app'],
+        userTurnSelector: 'user-query',
+        allTurnSelector: 'div.conversation-container',
+        assistantTurnSelector: 'model-response',
+        userTextSelector: 'user-query .query-text, user-query-content .query-text, .query-text',
+        assistantTextSelector: 'message-content, .markdown, .model-response-text',
+        conversationRootSelectors: [
+            'div.conversation-container',
+            'user-query',
+            'chat-window-content',
+            '#chat-history',
+            'infinite-scroller'
+        ]
+    }
+};
+
+function getSiteType(hostname = location.hostname) {
+    const host = hostname || '';
+    for (const [key, config] of Object.entries(SITE_CONFIGS)) {
+        if (config.hostMatches.some(match => host === match || host.endsWith(`.${match}`))) {
+            return key;
+        }
+    }
+    return 'unknown';
+}
+
+function getSiteConfig(siteType = getSiteType()) {
+    return SITE_CONFIGS[siteType] || SITE_CONFIGS.chatgpt;
+}
+
+function isTimelineEnabledForSite(settings, siteType = getSiteType()) {
+    if (!settings) return true;
+    if (siteType === 'gemini') return settings.enableGeminiTimeline !== false;
+    if (siteType === 'chatgpt') return settings.enableChatGPTTimeline !== false;
+    return false;
+}
+
+let settingsCache = { ...DEFAULT_SETTINGS };
+let settingsCacheLoaded = false;
+
+async function loadSettingsCache() {
+    try {
+        const result = await chrome.storage.local.get(['chatgptTimelineSettings']);
+        const saved = result.chatgptTimelineSettings || {};
+        settingsCache = { ...DEFAULT_SETTINGS, ...saved };
+        settingsCacheLoaded = true;
+        return settingsCache;
+    } catch (error) {
+        console.warn('Failed to load settings cache:', error);
+        settingsCacheLoaded = true;
+        return settingsCache;
+    }
+}
+
+function getCachedSettings() {
+    return settingsCacheLoaded ? settingsCache : { ...DEFAULT_SETTINGS, ...settingsCache };
+}
+
+function isSupportedConversationUrl(url) {
+    try {
+        const parsed = new URL(url, location.origin);
+        const siteType = getSiteType(parsed.hostname);
+        const config = SITE_CONFIGS[siteType];
+        if (!config) return false;
+        return config.pathPrefixes.some(prefix => parsed.pathname.startsWith(prefix));
+    } catch {
+        return false;
+    }
+}
+
+function getFirstTurnElementForSite() {
+    const config = getSiteConfig();
+    return document.querySelector(config.allTurnSelector) ||
+           document.querySelector(config.userTurnSelector);
+}
+
+function getAllTurnElementsForSite() {
+    const config = getSiteConfig();
+    return Array.from(document.querySelectorAll(config.allTurnSelector));
+}
+
 class TimelineManager {
     constructor() {
         this.scrollContainer = null;
         this.conversationContainer = null;
         this.markers = [];
+        this.markerById = new Map();
         this.activeTurnId = null;
         this.ui = { timelineBar: null, tooltip: null };
         this.isScrolling = false;
@@ -102,16 +216,8 @@ class TimelineManager {
 
         // Settings management
         this.settingsKey = 'chatgptTimelineSettings';
-        this.settings = {
-            timelinePosition: 'right',
-            enableDragging: true,
-            enableLongPressDrag: true,
-            enableTOC: true, // 默认启用目录导航
-            tocWidth: 280,
-            tocPosition: 'left',
-            chatgptWidth: 48,
-            taskPageWidth: 48
-        };
+        this.settings = { ...DEFAULT_SETTINGS };
+        this.siteType = getSiteType();
 
         this.debouncedRecalculateAndRender = this.debounce(this.recalculateAndRenderMarkers, 350);
 
@@ -156,6 +262,12 @@ class TimelineManager {
                 this.i18n = i18n;
             }
 
+            await this.loadSettings();
+            if (!isTimelineEnabledForSite(this.settings, this.siteType)) {
+                console.log(`Timeline disabled for ${this.siteType}, skipping initialization`);
+                return;
+            }
+
             // Find critical elements with fallbacks
             await this.findCriticalElements();
 
@@ -189,12 +301,14 @@ class TimelineManager {
         const maxRetries = 5;
         const retryDelay = 1000; // 1 second
         let firstTurn = null;
+        const siteConfig = getSiteConfig(this.siteType);
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             console.log(`Finding critical elements, attempt ${attempt}/${maxRetries}`);
 
             // Try multiple selectors for conversation turns (ChatGPT may have changed their DOM structure)
             const possibleSelectors = [
+                ...(siteConfig.conversationRootSelectors || []),
                 'article[data-turn-id]',
                 '[data-testid="conversation-turn"]',
                 '.conversation-turn',
@@ -247,6 +361,7 @@ class TimelineManager {
                     // Look for elements that have substantial text content and might be conversation containers
                     if (textContent.length > maxTextLength &&
                         (textContent.includes('ChatGPT') || textContent.includes('GPT') ||
+                         textContent.includes('Gemini') || textContent.includes('Bard') ||
                          textContent.includes('You said') || textContent.includes('user') ||
                          textContent.includes('Human') || textContent.includes('Assistant') ||
                          textContent.length > 500)) {
@@ -261,6 +376,8 @@ class TimelineManager {
                 } else if (mainContent.textContent &&
                            (mainContent.textContent.includes('ChatGPT') ||
                             mainContent.textContent.includes('GPT') ||
+                            mainContent.textContent.includes('Gemini') ||
+                            mainContent.textContent.includes('Bard') ||
                             mainContent.textContent.length > 1000)) {
                     firstTurn = mainContent;
                     console.log('Using main content area as conversation element');
@@ -286,8 +403,10 @@ class TimelineManager {
                        document.body;
         }
 
+        const turnContainer = this.getTurnContainer(firstTurn);
+
         // Ensure conversationContainer is always a valid DOM element
-        this.conversationContainer = firstTurn.parentElement || firstTurn;
+        this.conversationContainer = turnContainer.parentElement || turnContainer;
 
         // Final fallback to ensure we always have a valid container
         if (!this.conversationContainer || this.conversationContainer.nodeType !== Node.ELEMENT_NODE) {
@@ -317,6 +436,9 @@ class TimelineManager {
             const possibleScrollContainers = [
                 document.querySelector('main'),
                 document.querySelector('[role="main"]'),
+                document.querySelector('#chat-history'),
+                document.querySelector('.chat-history-scroll-container'),
+                document.querySelector('.chat-history'),
                 document.querySelector('.conversation-container'),
                 document.querySelector('[class*="scroll"]'),
                 document.querySelector('[class*="container"]'),
@@ -343,9 +465,6 @@ class TimelineManager {
     
     async injectTimelineUI() {
         try {
-            // Load settings first
-            await this.loadSettings();
-
             // Apply ChatGPT width setting
             if (this.settings.chatgptWidth) {
                 document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', this.settings.chatgptWidth + 'rem');
@@ -472,7 +591,7 @@ class TimelineManager {
         if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
         // Get only user conversation turns (for timeline markers)
-        const userTurnElements = this.conversationContainer.querySelectorAll('article[data-turn="user"]');
+        const userTurnElements = this.getUserTurnElements();
         // Reset visible window to avoid cleaning with stale indices after rebuild
         this.visibleRange = { start: 0, end: -1 };
         // If the conversation is transiently empty (branch switching), don't wipe UI immediately
@@ -504,18 +623,21 @@ class TimelineManager {
         this.contentSpanPx = contentSpan;
 
         // Build markers with normalized position along conversation (only for user turns)
-        this.markers = Array.from(userTurnElements).map(el => {
+        this.markerById.clear();
+        this.markers = Array.from(userTurnElements).map((el, index) => {
             const offsetFromStart = el.offsetTop - firstTurnOffset;
             let n = offsetFromStart / contentSpan;
             n = Math.max(0, Math.min(1, n));
 
             // Get ChatGPT's reply for this user turn
             const chatgptReply = this.getChatGPTReply(el);
+            const markerId = this.getTurnId(el, index);
+            this.markerById.set(markerId, el);
 
             return {
-                id: el.dataset.turnId,
+                id: markerId,
                 element: el,
-                summary: this.normalizeText(el.textContent || ''),
+                summary: this.getUserSummary(el),
                 chatgptReply: chatgptReply,
                 n,
                 baseN: n,
@@ -557,10 +679,70 @@ class TimelineManager {
         this.perfEnd('recalc');
     }
 
+    getTurnContainer(turnElement) {
+        if (!turnElement) return null;
+        if (this.siteType === 'gemini') {
+            return turnElement.closest('div.conversation-container') || turnElement;
+        }
+        return turnElement;
+    }
+
+    getUserTurnElements() {
+        if (!this.conversationContainer) return [];
+        if (this.siteType === 'gemini') {
+            const nodes = Array.from(this.conversationContainer.querySelectorAll('user-query'));
+            return nodes.filter(node => node.querySelector('.query-text') || (node.textContent || '').trim().length > 0);
+        }
+        return Array.from(this.conversationContainer.querySelectorAll('article[data-turn="user"]'));
+    }
+
+    getAllTurnElements() {
+        if (!this.conversationContainer) return [];
+        const siteConfig = getSiteConfig(this.siteType);
+        return Array.from(this.conversationContainer.querySelectorAll(siteConfig.allTurnSelector));
+    }
+
+    getTurnId(turnElement, index) {
+        if (!turnElement) return `turn-${index}`;
+        if (this.siteType === 'gemini') {
+            const container = this.getTurnContainer(turnElement);
+            return container?.id || turnElement.id || `gemini-turn-${index}`;
+        }
+        return turnElement.dataset.turnId || turnElement.id || `turn-${index}`;
+    }
+
+    getUserContentElement(turnElement) {
+        if (!turnElement) return null;
+        if (this.siteType === 'gemini') {
+            const container = this.getTurnContainer(turnElement);
+            return container?.querySelector('user-query .query-text') ||
+                   container?.querySelector('user-query') ||
+                   turnElement;
+        }
+        return turnElement;
+    }
+
+    getUserSummary(turnElement) {
+        const target = this.getUserContentElement(turnElement) || turnElement;
+        return this.normalizeText(target.textContent || '');
+    }
+
     // Get ChatGPT's reply for a given user conversation turn
     getChatGPTReply(userElement) {
+        if (this.siteType === 'gemini') {
+            const container = this.getTurnContainer(userElement);
+            const response = container?.querySelector('model-response');
+            if (!response) return '';
+            const siteConfig = getSiteConfig(this.siteType);
+            const textNode = response.querySelector(siteConfig.assistantTextSelector) || response;
+            const replyText = this.normalizeText(textNode.textContent || '');
+            if (replyText && replyText.length > 10) {
+                return replyText;
+            }
+            return '';
+        }
         // Find the corresponding ChatGPT reply for this user message
-        const allTurns = Array.from(this.conversationContainer.querySelectorAll('article[data-turn-id]'));
+        const allTurns = this.getAllTurnElements();
         const currentIndex = allTurns.indexOf(userElement);
 
         // Look for the next assistant turn (ChatGPT's reply) after this user turn
@@ -716,9 +898,10 @@ class TimelineManager {
 
     // Ensure our conversation/scroll containers are still current after DOM replacements
     ensureContainersUpToDate() {
-        const first = document.querySelector('article[data-turn-id]');
+        const first = getFirstTurnElementForSite();
         if (!first) return;
-        const newConv = first.parentElement;
+        const turnContainer = this.getTurnContainer(first);
+        const newConv = turnContainer?.parentElement || turnContainer;
         
         // Validate that newConv is a valid DOM element before using it
         if (newConv && 
@@ -784,7 +967,7 @@ class TimelineManager {
         if (!this.intersectionObserver || !this.conversationContainer) return;
         this.intersectionObserver.disconnect();
         this.visibleTurns.clear();
-        const allTurns = this.conversationContainer.querySelectorAll('article[data-turn-id]');
+        const allTurns = this.getUserTurnElements();
         allTurns.forEach(el => this.intersectionObserver.observe(el));
     }
 
@@ -820,7 +1003,7 @@ class TimelineManager {
             const dot = e.target.closest('.timeline-dot');
             if (dot) {
                 const targetId = dot.dataset.targetTurnId;
-                const targetElement = this.conversationContainer.querySelector(`article[data-turn-id="${targetId}"]`);
+                const targetElement = this.markerById.get(targetId);
                 if (targetElement) {
                     // Only scroll; let scroll-based computation set active to avoid double-flash
                     this.smoothScrollTo(targetElement);
@@ -1170,7 +1353,20 @@ class TimelineManager {
     // Get full ChatGPT reply with proper formatting
     getFullChatGPTReply(userElement) {
         try {
-            const allTurns = Array.from(this.conversationContainer.querySelectorAll('article[data-turn-id]'));
+            if (this.siteType === 'gemini') {
+                const container = this.getTurnContainer(userElement);
+                const response = container?.querySelector('model-response');
+                if (!response) return '';
+                const siteConfig = getSiteConfig(this.siteType);
+                const replyNode = response.querySelector(siteConfig.assistantTextSelector) || response;
+                const replyText = this.getFullTextContent(replyNode);
+                if (replyText && replyText.length > 10) {
+                    return replyText;
+                }
+                return '';
+            }
+
+            const allTurns = this.getAllTurnElements();
             const currentIndex = allTurns.indexOf(userElement);
 
             // Look for the next assistant turn (ChatGPT's reply) after this user turn
@@ -1275,7 +1471,7 @@ class TimelineManager {
     async copyQAText(marker) {
         try {
             // Get full text content with proper formatting (including code blocks)
-            const userText = this.getFullTextContent(marker.element);
+            const userText = this.getFullTextContent(this.getUserContentElement(marker.element) || marker.element);
             const chatgptText = this.getFullChatGPTReply(marker.element);
             
             // Format as QA text
@@ -1293,7 +1489,7 @@ class TimelineManager {
         } catch (error) {
             console.error('Failed to copy QA text:', error);
             // Fallback for older browsers
-            const userText = this.getFullTextContent(marker.element);
+            const userText = this.getFullTextContent(this.getUserContentElement(marker.element) || marker.element);
             const chatgptText = this.getFullChatGPTReply(marker.element);
             let qaText = `Q: ${userText}`;
             if (chatgptText) {
@@ -2054,6 +2250,7 @@ class TimelineManager {
         }
         this.ui = { timelineBar: null, tooltip: null };
         this.markers = [];
+        this.markerById.clear();
         this.activeTurnId = null;
         this.scrollContainer = null;
         this.conversationContainer = null;
@@ -2340,6 +2537,8 @@ class TimelineManager {
             if (saved) {
                 this.settings = { ...this.settings, ...saved };
             }
+            settingsCache = { ...DEFAULT_SETTINGS, ...this.settings };
+            settingsCacheLoaded = true;
         } catch (error) {
             console.warn('Failed to load settings:', error);
         }
@@ -2348,6 +2547,8 @@ class TimelineManager {
     async saveSettings() {
         try {
             await chrome.storage.local.set({ [this.settingsKey]: this.settings });
+            settingsCache = { ...DEFAULT_SETTINGS, ...this.settings };
+            settingsCacheLoaded = true;
         } catch (error) {
             console.warn('Failed to save settings:', error);
         }
@@ -3232,6 +3433,15 @@ class TimelineManager {
                 }
                 this.settings = { ...this.settings, ...request.settings };
                 await this.saveSettings();
+                settingsCache = { ...DEFAULT_SETTINGS, ...this.settings };
+                settingsCacheLoaded = true;
+
+                if (!isTimelineEnabledForSite(this.settings, this.siteType)) {
+                    this.destroy();
+                    timelineManagerInstance = null;
+                    sendResponse({ success: true, disabled: true });
+                    return;
+                }
 
                 // Re-inject UI with new settings
                 if (this.ui.timelineBar) {
@@ -3310,7 +3520,6 @@ let routeListenersAttached = false;
 let contentChangeObserver = null;
 const CONTENT_CHANGE_DEBOUNCE = 150; // Debounce DOM change detection
 
-const TIMELINE_SUPPORTED_PATH_PREFIXES = ['/c/', '/g/'];
 const URL_CHANGE_MAX_ATTEMPTS = 8;
 const URL_CHANGE_RETRY_DELAY = 200;
 
@@ -3327,9 +3536,12 @@ function debounce(func, wait) {
     };
 }
 
-function isTimelineSupportedPath(pathname = location.pathname) {
+function isTimelineSupportedPath(pathname = location.pathname, hostname = location.hostname) {
     try {
-        return TIMELINE_SUPPORTED_PATH_PREFIXES.some(prefix => pathname.startsWith(prefix));
+        const siteType = getSiteType(hostname);
+        const config = SITE_CONFIGS[siteType];
+        if (!config) return false;
+        return config.pathPrefixes.some(prefix => pathname.startsWith(prefix));
     } catch {
         return false;
     }
@@ -3375,7 +3587,7 @@ function setupPushStateHooks() {
         // Also listen for click events on links to catch navigation attempts
         document.addEventListener('click', (e) => {
             const link = e.target.closest('a[href]');
-            if (link && link.href && link.href.includes('/c/')) {
+            if (link && link.href && isSupportedConversationUrl(link.href)) {
                 console.log('Navigation link clicked, scheduling URL change check');
                 // Schedule a check after a short delay to allow navigation to complete
                 setTimeout(() => {
@@ -3418,7 +3630,9 @@ function setupContentChangeObserver() {
     try {
         contentChangeObserver = new MutationObserver(debounce(() => {
             // Check if we're on a supported path and have conversation elements
-            if (isTimelineSupportedPath() && hasRequiredConversationElements(true)) {
+            if (isTimelineSupportedPath() &&
+                isTimelineEnabledForSite(getCachedSettings(), getSiteType()) &&
+                hasRequiredConversationElements(true)) {
                 // Handle both URL changes and content changes
                 if (location.href !== currentUrl) {
                     // URL changed - this is SPA navigation
@@ -3432,7 +3646,7 @@ function setupContentChangeObserver() {
                     // Timeline exists but content changed - might need refresh
                     console.log('DOM content changed with existing timeline, checking if refresh needed');
                     // Check if the conversation structure has significantly changed
-                    const currentTurns = document.querySelectorAll('article[data-turn-id]').length;
+                    const currentTurns = getAllTurnElementsForSite().length;
                     if (currentTurns !== timelineManagerInstance.markers.length) {
                         console.log('Conversation structure changed, refreshing timeline');
                         timelineManagerInstance.refreshContent();
@@ -3454,7 +3668,12 @@ function setupContentChangeObserver() {
             '.react-scroll-to-bottom', // ChatGPT specific
             'article', 
             '[data-testid="conversation-turn"]', 
-            '.conversation-turn'
+            '.conversation-turn',
+            'chat-window-content',
+            '#chat-history',
+            'infinite-scroller',
+            'div.conversation-container',
+            'user-query'
         ];
         
         let observerAttached = false;
@@ -3523,6 +3742,11 @@ function cleanupGlobalObservers() {
 }
 
 async function initializeTimeline() {
+    await loadSettingsCache();
+    if (!isTimelineEnabledForSite(getCachedSettings(), getSiteType())) {
+        console.log('Timeline disabled for current site, skipping initialization');
+        return;
+    }
     // Clean up existing instance if any
     if (timelineManagerInstance) {
         try { timelineManagerInstance.destroy(); } catch (err) {
@@ -3566,14 +3790,14 @@ function handleUrlChange() {
     // Cancel any pending init from previous route
     try { if (initTimerId) { clearTimeout(initTimerId); initTimerId = null; } } catch {}
 
-    if (isTimelineSupportedPath()) {
+    if (isTimelineSupportedPath() && isTimelineEnabledForSite(getCachedSettings(), getSiteType())) {
         // Attempt to process the route change with retries to wait for DOM readiness
         attemptProcessUrlChange();
     }
 }
 
 function attemptProcessUrlChange(attempt = 1) {
-    if (!isTimelineSupportedPath()) return;
+    if (!isTimelineSupportedPath() || !isTimelineEnabledForSite(getCachedSettings(), getSiteType())) return;
 
     const hasConversationElements = hasRequiredConversationElements(true);
 
@@ -3604,13 +3828,18 @@ function hasRequiredConversationElements(forceCheck = false) {
     }
 
     // Optimized selector list - check in order of specificity and likelihood
+    const siteConfig = getSiteConfig();
     const possibleSelectors = [
+        siteConfig.allTurnSelector,
+        siteConfig.userTurnSelector,
         'article[data-turn-id]',
         '[data-testid="conversation-turn"]',
         '.conversation-turn',
         'article',
         '[data-message-id]',
-        '.message'
+        '.message',
+        'div.conversation-container',
+        'user-query'
     ];
 
     let foundElement = null;
@@ -3680,8 +3909,8 @@ async function processUrlChange() {
 }
 
 const initialObserver = new MutationObserver(async () => {
-    if (document.querySelector('article[data-turn-id]')) {
-        if (isTimelineSupportedPath()) {
+    if (getFirstTurnElementForSite()) {
+        if (isTimelineSupportedPath() && isTimelineEnabledForSite(getCachedSettings(), getSiteType())) {
             try {
                 await initializeTimeline();
             } catch (err) {
@@ -3710,10 +3939,13 @@ const initializationInterval = setInterval(async () => {
     initializationAttempts++;
 
     // Check if we can find conversation elements (updated for new DOM structure)
+    const bodyText = document.body.textContent || '';
     const hasConversationElements = hasRequiredConversationElements() ||
-                                   (document.querySelector('main') && (document.body.textContent || '').includes('ChatGPT'));
+                                   (document.querySelector('main') && (bodyText.includes('ChatGPT') || bodyText.includes('Gemini')));
 
-    if (hasConversationElements && isTimelineSupportedPath() && !timelineManagerInstance) {
+    if (hasConversationElements && isTimelineSupportedPath() &&
+        isTimelineEnabledForSite(getCachedSettings(), getSiteType()) &&
+        !timelineManagerInstance) {
         console.log(`Attempting timeline initialization (attempt ${initializationAttempts})`);
         try {
             await initializeTimeline();
@@ -3735,10 +3967,11 @@ const initializationInterval = setInterval(async () => {
 let scrollInitAttempts = 0;
 const maxScrollInitAttempts = 3;
 const handleScrollForInit = async () => {
-    if (timelineManagerInstance || !isTimelineSupportedPath()) return;
+    if (timelineManagerInstance || !isTimelineSupportedPath() ||
+        !isTimelineEnabledForSite(getCachedSettings(), getSiteType())) return;
 
     scrollInitAttempts++;
-    const hasConversationElements = document.querySelector('article[data-turn-id]') ||
+    const hasConversationElements = getFirstTurnElementForSite() ||
                                    document.querySelector('[data-testid="conversation-turn"]') ||
                                    document.querySelector('.conversation-turn') ||
                                    document.querySelector('main');
@@ -3818,11 +4051,23 @@ async function handleStandaloneMessage(request, sendResponse) {
             const saved = result.chatgptTimelineSettings || {};
             const merged = { ...saved, ...request.settings };
             await chrome.storage.local.set({ chatgptTimelineSettings: merged });
+            settingsCache = { ...DEFAULT_SETTINGS, ...merged };
+            settingsCacheLoaded = true;
             if (merged.chatgptWidth) {
                 document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', merged.chatgptWidth + 'rem');
             }
             if (merged.taskPageWidth) {
                 document.documentElement.style.setProperty('--timeline-task-page-max-width', merged.taskPageWidth + 'rem');
+            }
+
+            const enabledForSite = isTimelineEnabledForSite(settingsCache, getSiteType());
+            if (!enabledForSite) {
+                try { document.querySelector('.chatgpt-timeline-bar')?.remove(); } catch {}
+                try { document.querySelector('.timeline-left-slider')?.remove(); } catch {}
+                try { document.getElementById('chatgpt-timeline-tooltip')?.remove(); } catch {}
+                try { document.querySelector('.timeline-toc')?.remove(); } catch {}
+            } else if (!timelineManagerInstance && isTimelineSupportedPath()) {
+                await initializeTimeline();
             }
             sendResponse({ success: true });
         } catch (error) {
@@ -3855,6 +4100,7 @@ async function handleStandaloneMessage(request, sendResponse) {
 }
 
 applyStoredWidthSettings();
+loadSettingsCache();
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
