@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "ChatGPT 对话助手(时间线/目录导航/复制回复/页面宽度修改)",
+    "message": "AI 对话助手（时间线/目录导航/复制回复/页面宽度调整）",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "为ChatGPT对话页面添加时间线/目录导航/复制回复/页面宽度修改功能，方便快速导航/复制回复/修改页面宽度。",
+    "message": "为 ChatGPT、Gemini、Claude、DeepSeek、豆包和 Grok 的 AI 对话页面添加时间线/目录导航/复制回复/页面宽度调整，便于快速浏览与管理聊天内容。",
     "description": "Extension description"
   },
   "popupTitle": {
@@ -164,7 +164,7 @@
     "description": "Task page width label"
   },
   "taskPageWidthDescription": {
-    "message": "调整任务页面内容的最大宽度，拖动滑块实时生效",
+    "message": "[codex task] 调整任务页面内容的最大宽度，拖动滑块实时生效",
     "description": "Description for task page width setting"
   },
   "geminiWidthLabel": {

@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "ChatGPT Conversation Assistant(Timeline/TOC/Copy Reply/Page Width Modification)",
+    "message": "AI Conversation Assistant",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Adds a timeline/TOC/Copy Reply/Page Width Modification to ChatGPT conversations for easy navigation/copy reply/modify page width.",
+    "message": "Add timeline, TOC, copy reply, and page width controls for ChatGPT, Gemini, Claude, DeepSeek, Doubao, and Grok.",
     "description": "Extension description"
   },
   "popupTitle": {
@@ -164,7 +164,7 @@
     "description": "Task page width label"
   },
   "taskPageWidthDescription": {
-    "message": "Adjust the maximum width of task page content, drag the slider for real-time effect",
+    "message": "[codex task] Adjust the maximum width of task page content, drag the slider for real-time effect",
     "description": "Description for task page width setting"
   },
   "geminiWidthLabel": {
