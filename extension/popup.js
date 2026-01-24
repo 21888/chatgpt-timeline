@@ -13,7 +13,8 @@ class SettingsManager {
             enableGeminiTimeline: true,
             chatgptWidth: 48,
             taskPageWidth: 48,
-            geminiWidth: 48
+            geminiWidth: 48,
+            grokWidth: 85
         };
         this.settings = { ...this.defaultSettings };
 
@@ -127,6 +128,15 @@ class SettingsManager {
                         console.log('Failed to update Gemini width in real-time');
                     });
                 }
+
+                if (this.settings.grokWidth) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateGrokWidth',
+                        width: this.settings.grokWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update Grok width in real-time');
+                    });
+                }
             }
         });
     }
@@ -238,6 +248,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // Grok 内容宽度滑块
+        const grokWidthSlider = document.getElementById('grokWidth');
+        const grokWidthValue = document.getElementById('grokWidthValue');
+
+        grokWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            grokWidthValue.textContent = value + 'rem';
+            this.settings.grokWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-grok-content-max-width', value + 'rem');
+            this.notifyContentScript();
+        });
+
+        grokWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // 重置按钮
         document.getElementById('resetSettings').addEventListener('click', () => {
             this.settings = { ...this.defaultSettings };
@@ -292,6 +319,12 @@ class SettingsManager {
         const geminiWidthValue = document.getElementById('geminiWidthValue');
         geminiWidthSlider.value = this.settings.geminiWidth;
         geminiWidthValue.textContent = this.settings.geminiWidth + 'rem';
+
+        // 更新 Grok 内容宽度滑块和显示值
+        const grokWidthSlider = document.getElementById('grokWidth');
+        const grokWidthValue = document.getElementById('grokWidthValue');
+        grokWidthSlider.value = this.settings.grokWidth;
+        grokWidthValue.textContent = this.settings.grokWidth + 'rem';
     }
 
     updateTOCOptionVisibility() {

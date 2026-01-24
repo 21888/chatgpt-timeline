@@ -1,768 +1,792 @@
-
 :root {
-    --timeline-dot-color: #D1D5DB; /* Light mode gray */
-    --timeline-dot-active-color: #10A37F; /* ChatGPT's primary green */
+  --timeline-dot-color: #D1D5DB;
+  /* Light mode gray */
+  --timeline-dot-active-color: #10A37F;
+  /* ChatGPT's primary green */
 
-    /* AI Studio-like tooltip tokens (light) */
-    --timeline-tooltip-bg: #FFFFFF;
-    --timeline-tooltip-text: #1F2937; /* slate-800 */
-    --timeline-tooltip-border: #E5E7EB; /* gray-200 */
-    --timeline-tooltip-radius: 12px;
-    --timeline-tooltip-shadow: 0 4px 14px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
-    /* geometry */
-    --timeline-tooltip-lh: 18px;
-    --timeline-tooltip-pad-y: 10px;
-    --timeline-tooltip-pad-x: 12px;
-    --timeline-tooltip-border-w: 1px;
-    --timeline-tooltip-arrow-size: 8px; /* square side before rotation */
-    --timeline-tooltip-arrow-outside: 4px; /* how much arrow protrudes outside */
-    --timeline-tooltip-anim-in: 120ms cubic-bezier(0, 0, 0.2, 1);
-    --timeline-tooltip-anim-out: 100ms linear;
+  /* AI Studio-like tooltip tokens (light) */
+  --timeline-tooltip-bg: #FFFFFF;
+  --timeline-tooltip-text: #1F2937;
+  /* slate-800 */
+  --timeline-tooltip-border: #E5E7EB;
+  /* gray-200 */
+  --timeline-tooltip-radius: 12px;
+  --timeline-tooltip-shadow: 0 4px 14px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
+  /* geometry */
+  --timeline-tooltip-lh: 18px;
+  --timeline-tooltip-pad-y: 10px;
+  --timeline-tooltip-pad-x: 12px;
+  --timeline-tooltip-border-w: 1px;
+  --timeline-tooltip-arrow-size: 8px;
+  /* square side before rotation */
+  --timeline-tooltip-arrow-outside: 4px;
+  /* how much arrow protrudes outside */
+  --timeline-tooltip-anim-in: 120ms cubic-bezier(0, 0, 0.2, 1);
+  --timeline-tooltip-anim-out: 100ms linear;
 
-    --timeline-bar-bg: rgba(240, 240, 240, 0.8);
-    --timeline-dot-size: 12px;
-    --timeline-active-ring: 3px;
-    --timeline-track-padding: 16px;
-    --timeline-tooltip-max: 288px;
-    --timeline-min-gap: 24px;
-    /* enlarged hit area for easier clicking */
-    --timeline-hit-size: 30px;
-    /* spacing model */
-    --timeline-tooltip-gap-visual: 8px;  /* arrow tip to dot */
-    --timeline-tooltip-gap-box: 4px;     /* rectangle edge to timeline */
-    /* 宽度限制 */
-    --timeline-chatgpt-html-content-max-width: 48rem;
-    --timeline-task-page-max-width: 48rem;
-    --timeline-gemini-conversation-max-width: 48rem;
+  --timeline-bar-bg: rgba(240, 240, 240, 0.8);
+  --timeline-dot-size: 12px;
+  --timeline-active-ring: 3px;
+  --timeline-track-padding: 16px;
+  --timeline-tooltip-max: 288px;
+  --timeline-min-gap: 24px;
+  /* enlarged hit area for easier clicking */
+  --timeline-hit-size: 30px;
+  /* spacing model */
+  --timeline-tooltip-gap-visual: 8px;
+  /* arrow tip to dot */
+  --timeline-tooltip-gap-box: 4px;
+  /* rectangle edge to timeline */
+  /* 宽度限制 */
+  --timeline-chatgpt-html-content-max-width: 48rem;
+  --timeline-task-page-max-width: 48rem;
+  --timeline-gemini-conversation-max-width: 48rem;
+  --timeline-grok-content-max-width: 85rem;
 }
+
 /* 宽度限制 */
-article.text-token-text-primary div div[tabindex]{
-    --thread-content-max-width: var(--timeline-chatgpt-html-content-max-width);
+article.text-token-text-primary div div[tabindex] {
+  --thread-content-max-width: var(--timeline-chatgpt-html-content-max-width);
 }
+
 /* Codex 任务页宽度（对应 xl:max-w-[48rem]） */
 @media (min-width: 1280px) {
-    div[class~="@container"][class*="xl:max-w-[48rem]"] {
-        max-width: var(--timeline-task-page-max-width) !important;
-    }
+  div[class~="@container"][class*="xl:max-w-[48rem]"] {
+    max-width: var(--timeline-task-page-max-width) !important;
+  }
 }
+
 /* Gemini 对话宽度 */
 div.conversation-container.message-actions-hover-boundary.ng-star-inserted,
 user-query.ng-star-inserted {
-    max-width: var(--timeline-gemini-conversation-max-width) !important;
+  max-width: var(--timeline-gemini-conversation-max-width) !important;
 }
+
+/* Grok 页面宽度 */
+main div.relative.items-center div.relative div.w-full.flex-col.flex {
+  max-width: var(--timeline-grok-content-max-width) !important;
+
+}
+
 /* Override variables when ChatGPT's dark mode is active */
 html.dark {
-    --timeline-dot-color: #555555;
-    --timeline-dot-active-color: #19C37D;
-    /* Dark tooltip palette */
-    --timeline-tooltip-bg: #2B2B2B;
-    --timeline-tooltip-text: #EAEAEA;
-    --timeline-tooltip-border: #3A3A3A;
-    --timeline-bar-bg: rgba(50, 50, 50, 0.8);
+  --timeline-dot-color: #555555;
+  --timeline-dot-active-color: #19C37D;
+  /* Dark tooltip palette */
+  --timeline-tooltip-bg: #2B2B2B;
+  --timeline-tooltip-text: #EAEAEA;
+  --timeline-tooltip-border: #3A3A3A;
+  --timeline-bar-bg: rgba(50, 50, 50, 0.8);
 }
 
 .chatgpt-timeline-bar {
-    position: fixed;
-    top: 60px; /* Position below the main header */
-    right: 30px;
-    width: 26px;
-    height: calc(100vh - 100px); /* Avoid overlapping the bottom input area */
-    z-index: 2147483646; /* ensure above site chrome */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-radius: 12px;
-    background-color: var(--timeline-bar-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    overflow: visible;
-    /* Isolate layout/paint to reduce reflow propagation during updates */
-    contain: layout paint;
+  position: fixed;
+  top: 60px;
+  /* Position below the main header */
+  right: 30px;
+  width: 26px;
+  height: calc(100vh - 100px);
+  /* Avoid overlapping the bottom input area */
+  z-index: 2147483646;
+  /* ensure above site chrome */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 12px;
+  background-color: var(--timeline-bar-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  overflow: visible;
+  /* Isolate layout/paint to reduce reflow propagation during updates */
+  contain: layout paint;
 }
 
 html.dark .chatgpt-timeline-bar {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Fixed track that shows every dot without scrolling */
 .timeline-track {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Central line running through the timeline */
 .timeline-track::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: var(--timeline-track-padding);
-    bottom: var(--timeline-track-padding);
-    width: 1px;
-    background: rgba(16, 163, 127, 0.25);
-    transform: translateX(-50%);
-    z-index: 1;
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: var(--timeline-track-padding);
+  bottom: var(--timeline-track-padding);
+  width: 1px;
+  background: rgba(16, 163, 127, 0.25);
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 html.dark .timeline-track::before {
-    background: rgba(25, 195, 125, 0.30);
+  background: rgba(25, 195, 125, 0.30);
 }
 
 /* Inner content whose height reflects conversation length */
 .timeline-track-content {
-    position: relative;
-    width: calc(100% - 2px);
-    height: 100%; /* updated by JS when needed */
+  position: relative;
+  width: calc(100% - 2px);
+  height: 100%;
+  /* updated by JS when needed */
 }
 
 /* Drag handle for repositioning */
 .timeline-drag-handle {
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    color: var(--timeline-dot-color);
-    cursor: grab;
-    user-select: none;
-    opacity: 0.7;
-    transition: opacity 0.2s ease, color 0.2s ease;
-    z-index: 10;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--timeline-dot-color);
+  cursor: grab;
+  user-select: none;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  z-index: 10;
 }
 
 .timeline-drag-handle:hover {
-    opacity: 1;
-    color: var(--timeline-dot-active-color);
+  opacity: 1;
+  color: var(--timeline-dot-active-color);
 }
 
 .timeline-drag-handle.active {
-    cursor: grabbing;
-    opacity: 1;
-    color: var(--timeline-dot-active-color);
+  cursor: grabbing;
+  opacity: 1;
+  color: var(--timeline-dot-active-color);
 }
 
 html.dark .timeline-drag-handle {
-    color: #9CA3AF;
+  color: #9CA3AF;
 }
 
 html.dark .timeline-drag-handle:hover {
-    color: var(--timeline-dot-active-color);
+  color: var(--timeline-dot-active-color);
 }
 
 /* Dragging state for the timeline bar */
 .chatgpt-timeline-bar.dragging {
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
-    cursor: grabbing;
-    user-select: none;
-    transform: scale(1.02) rotate(1deg);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.15);
-    z-index: 2147483647;
-    /* Performance optimizations */
-    will-change: transform;
-    contain: layout style paint;
-    /* Prevent layout shifts during drag */
-    position: fixed;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+  cursor: grabbing;
+  user-select: none;
+  transform: scale(1.02) rotate(1deg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 2147483647;
+  /* Performance optimizations */
+  will-change: transform;
+  contain: layout style paint;
+  /* Prevent layout shifts during drag */
+  position: fixed;
 }
 
 /* Timeline position variations */
 .chatgpt-timeline-bar.position-left {
-    right: auto;
-    left: 15px;
+  right: auto;
+  left: 15px;
 }
 
 .chatgpt-timeline-bar.position-top {
-    top: 20px;
-    right: 50%;
-    transform: translateX(50%);
-    width: 80%;
-    height: 30px;
-    max-width: 600px;
+  top: 20px;
+  right: 50%;
+  transform: translateX(50%);
+  width: 80%;
+  height: 30px;
+  max-width: 600px;
 }
 
 .chatgpt-timeline-bar.position-bottom {
-    top: auto;
-    bottom: 20px;
-    right: 50%;
-    transform: translateX(50%);
-    width: 80%;
-    height: 30px;
-    max-width: 600px;
+  top: auto;
+  bottom: 20px;
+  right: 50%;
+  transform: translateX(50%);
+  width: 80%;
+  height: 30px;
+  max-width: 600px;
 }
 
 /* Table of Contents Navigation - Collapsed Button */
 .timeline-toc {
-    position: fixed;
-    top: 60px;
-    background: var(--timeline-bar-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
-    z-index: 2147483645;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    user-select: none;
-    /* Prevent layout shifts during content updates */
-    contain: layout style paint;
-    /* Optimize for frequent updates */
-    will-change: transform, opacity;
+  position: fixed;
+  top: 60px;
+  background: var(--timeline-bar-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+  z-index: 2147483645;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+  /* Prevent layout shifts during content updates */
+  contain: layout style paint;
+  /* Optimize for frequent updates */
+  will-change: transform, opacity;
 }
 
 /* Collapsed state - small floating button */
 .timeline-toc.collapsed {
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Expanded state - compact panel */
 .timeline-toc.expanded {
-    width: 280px;
-    min-height: 200px;
-    max-height: calc(100vh - 120px);
-    padding: 16px;
-    overflow-y: auto;
-    /* Ensure visibility */
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto;
-    /* Optimize rendering during content updates */
-    transform: translateZ(0);
-    backface-visibility: hidden;
+  width: 280px;
+  min-height: 200px;
+  max-height: calc(100vh - 120px);
+  padding: 16px;
+  overflow-y: auto;
+  /* Ensure visibility */
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto;
+  /* Optimize rendering during content updates */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 html.dark .timeline-toc {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* TOC Toggle Button Icon */
 .timeline-toc::before {
-    content: '';
-    width: 20px;
-    height: 20px;
-    background: currentColor;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z'/%3E%3C/svg%3E") no-repeat center;
-    mask-size: contain;
-    opacity: 0.8;
-    transition: transform 0.2s ease;
+  content: '';
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z'/%3E%3C/svg%3E") no-repeat center;
+  mask-size: contain;
+  opacity: 0.8;
+  transition: transform 0.2s ease;
 }
 
 .timeline-toc:hover::before {
-    transform: scale(1.1);
-    opacity: 1;
+  transform: scale(1.1);
+  opacity: 1;
 }
 
 /* Collapsed button positioning - avoid timeline bar */
 .timeline-toc.collapsed {
-    right: 80px; /* Position to the left of timeline bar */
+  right: 80px;
+  /* Position to the left of timeline bar */
 }
 
-.chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
-    right: auto;
-    left: 80px; /* Position to the right of left-positioned timeline bar */
+.chatgpt-timeline-bar.position-left~.timeline-toc.collapsed {
+  right: auto;
+  left: 80px;
+  /* Position to the right of left-positioned timeline bar */
 }
 
 /* TOC Drag Handle */
 .timeline-toc .toc-drag-handle {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 18px;
-    height: 18px;
-    cursor: grab;
-    opacity: 0.8;
-    transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    color: #000000;
-    z-index: 10;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 3px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  cursor: grab;
+  opacity: 0.8;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #000000;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .timeline-toc.expanded .toc-drag-handle,
 .timeline-toc.collapsed .toc-drag-handle {
-    display: flex !important;
-    /* Ensure always visible */
-    visibility: visible !important;
-    opacity: 0.9 !important;
-    pointer-events: auto !important;
+  display: flex !important;
+  /* Ensure always visible */
+  visibility: visible !important;
+  opacity: 0.9 !important;
+  pointer-events: auto !important;
 }
 
 .timeline-toc .toc-drag-handle:hover {
-    opacity: 1;
-    transform: scale(1.15);
-    background: rgba(240, 240, 240, 0.95);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transform: scale(1.15);
+  background: rgba(240, 240, 240, 0.95);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 .timeline-toc .toc-drag-handle:active {
-    transform: scale(1.05);
-    background: rgba(220, 220, 220, 0.95);
+  transform: scale(1.05);
+  background: rgba(220, 220, 220, 0.95);
 }
 
 .timeline-toc.dragging,
 .chatgpt-timeline-bar.dragging {
-    cursor: grabbing;
-    user-select: none;
-    pointer-events: auto;
-    /* Disable text selection during drag */
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
+  cursor: grabbing;
+  user-select: none;
+  pointer-events: auto;
+  /* Disable text selection during drag */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Disable interactions on dots during timeline drag */
 .chatgpt-timeline-bar.dragging .timeline-dot {
-    pointer-events: none !important;
-    opacity: 0.4;
-    cursor: default;
-    transform: scale(0.9);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none !important;
+  opacity: 0.4;
+  cursor: default;
+  transform: scale(0.9);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 /* Disable interactions on TOC elements during drag */
 .timeline-toc.dragging .toc-item,
 .timeline-toc.dragging .toc-close,
 .timeline-toc.dragging button {
-    pointer-events: none !important;
-    cursor: default;
+  pointer-events: none !important;
+  cursor: default;
 }
 
 /* Ensure timeline bar itself remains draggable during drag */
 .chatgpt-timeline-bar.dragging {
-    pointer-events: auto;
+  pointer-events: auto;
 }
 
 .timeline-toc.dragging {
-    transform: scale(1.02);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
-    z-index: 2147483647;
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
-    /* Performance optimizations */
-    will-change: transform;
-    contain: layout style paint;
-    /* Prevent layout shifts during drag */
-    position: fixed;
+  transform: scale(1.02);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 2147483647;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+  /* Performance optimizations */
+  will-change: transform;
+  contain: layout style paint;
+  /* Prevent layout shifts during drag */
+  position: fixed;
 }
 
 .timeline-toc.dragging .toc-drag-handle {
-    opacity: 1;
-    cursor: grabbing;
-    transform: scale(1.1);
+  opacity: 1;
+  cursor: grabbing;
+  transform: scale(1.1);
 }
 
 .timeline-toc.collapsed.dragging {
-    transform: scale(1.05) rotate(2deg);
+  transform: scale(1.05) rotate(2deg);
 }
 
 /* Ensure collapsed TOC can still be dragged and is always visible */
 .timeline-toc.collapsed {
-    min-height: 60px;
-    min-width: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    /* Ensure visibility */
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto;
+  min-height: 60px;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  /* Ensure visibility */
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto;
 }
 
 /* Boundary proximity visual feedback */
 .timeline-toc.near-boundary,
 .chatgpt-timeline-bar.near-boundary {
-    border: 2px solid rgba(239, 68, 68, 0.6);
-    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2), 0 4px 16px rgba(239, 68, 68, 0.1);
+  border: 2px solid rgba(239, 68, 68, 0.6);
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2), 0 4px 16px rgba(239, 68, 68, 0.1);
 }
 
 html.dark .timeline-toc.near-boundary,
 html.dark .chatgpt-timeline-bar.near-boundary {
-    border-color: rgba(252, 165, 165, 0.6);
-    box-shadow: 0 8px 32px rgba(252, 165, 165, 0.2), 0 4px 16px rgba(252, 165, 165, 0.1);
+  border-color: rgba(252, 165, 165, 0.6);
+  box-shadow: 0 8px 32px rgba(252, 165, 165, 0.2), 0 4px 16px rgba(252, 165, 165, 0.1);
 }
 
 .timeline-toc::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .timeline-toc::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 .timeline-toc::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
 .timeline-toc::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* TOC Header - compact */
 .toc-header {
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 html.dark .toc-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .toc-header h3 {
-    font-size: 12px;
-    font-weight: 600;
-    color: #000000;
-    margin: 0;
-    flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+  flex: 1;
 }
 
 .toc-header .toc-close {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toc-header .toc-close:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 .toc-header .toc-close::before {
-    content: '×';
-    color: #000000;
+  content: '×';
+  color: #000000;
 }
 
 .toc-header .toc-expand {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toc-header .toc-expand:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 .toc-header .toc-expand::before {
-    content: '◉';
-    color: #000000;
-    font-size: 10px;
+  content: '◉';
+  color: #000000;
+  font-size: 10px;
 }
 
 /* TOC List - more compact */
 .toc-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-    /* Optimize for frequent content updates */
-    contain: layout style;
-    /* Prevent layout shifts during updates */
-    transform: translateZ(0);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  /* Optimize for frequent content updates */
+  contain: layout style;
+  /* Prevent layout shifts during updates */
+  transform: translateZ(0);
 }
 
 .toc-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 12px;
-    color: #000000;
-    background: rgba(255, 255, 255, 0.8);
-    border-left: 2px solid transparent;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    /* Optimize for frequent updates */
-    contain: layout style;
-    will-change: transform, background-color;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 12px;
+  color: #000000;
+  background: rgba(255, 255, 255, 0.8);
+  border-left: 2px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  /* Optimize for frequent updates */
+  contain: layout style;
+  will-change: transform, background-color;
 }
 
 .toc-item:hover {
-    background: rgba(240, 240, 240, 0.9);
-    color: #000000;
+  background: rgba(240, 240, 240, 0.9);
+  color: #000000;
 }
 
 .toc-item:active {
-    background: rgba(230, 230, 230, 0.9);
-    transform: translateY(0.5px);
+  background: rgba(230, 230, 230, 0.9);
+  transform: translateY(0.5px);
 }
 
 .toc-item.active {
-    background: rgba(16, 163, 127, 0.2);
-    border-left-color: var(--timeline-dot-active-color);
-    color: #000000;
+  background: rgba(16, 163, 127, 0.2);
+  border-left-color: var(--timeline-dot-active-color);
+  color: #000000;
 }
 
 .toc-index {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    background: var(--timeline-dot-active-color);
-    color: white;
-    border-radius: 50%;
-    font-size: 10px;
-    font-weight: 600;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--timeline-dot-active-color);
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .toc-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .toc-user-message {
-    font-size: 11px;
-    font-weight: 500;
-    color: #333333;
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  color: #333333;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toc-chatgpt-reply {
-    font-size: 10px;
-    color: #666666;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-style: italic;
+  font-size: 10px;
+  color: #666666;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
 }
 
 .toc-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-    line-height: 1.3;
-    color: #000000;
-    /* 还定义标准属性以实现兼容性 */
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.3;
+  color: #000000;
+  /* 还定义标准属性以实现兼容性 */
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
 }
 
 /* Empty state placeholder */
 .toc-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 16px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .toc-empty-state::before {
-    content: '📚';
-    font-size: 32px;
-    margin-bottom: 12px;
-    opacity: 0.6;
+  content: '📚';
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.6;
 }
 
 .toc-empty-state .empty-title {
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: #000000;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #000000;
 }
 
 .toc-empty-state .empty-subtitle {
-    font-size: 12px;
-    line-height: 1.4;
-    color: #333333;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #333333;
 }
 
 /* Adjust drag handle position for different timeline positions */
 .chatgpt-timeline-bar.position-top .timeline-drag-handle,
 .chatgpt-timeline-bar.position-bottom .timeline-drag-handle {
-    top: 50%;
-    left: auto;
-    right: 8px;
-    transform: translateY(-50%);
+  top: 50%;
+  left: auto;
+  right: 8px;
+  transform: translateY(-50%);
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .timeline-toc.expanded {
-        width: 260px;
-        max-width: calc(100vw - 60px);
-    }
+  .timeline-toc.expanded {
+    width: 260px;
+    max-width: calc(100vw - 60px);
+  }
 
-    .timeline-toc.collapsed {
-        width: 44px;
-        height: 44px;
-    }
+  .timeline-toc.collapsed {
+    width: 44px;
+    height: 44px;
+  }
 
-    .chatgpt-timeline-bar.position-top,
-    .chatgpt-timeline-bar.position-bottom {
-        width: 90%;
-    }
+  .chatgpt-timeline-bar.position-top,
+  .chatgpt-timeline-bar.position-bottom {
+    width: 90%;
+  }
 
-    /* Mobile TOC positioning */
-    .timeline-toc.collapsed {
-        right: 70px;
-    }
+  /* Mobile TOC positioning */
+  .timeline-toc.collapsed {
+    right: 70px;
+  }
 
-    .chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
-        left: 70px;
-    }
+  .chatgpt-timeline-bar.position-left~.timeline-toc.collapsed {
+    left: 70px;
+  }
 }
 
 @media (max-width: 480px) {
-    .timeline-toc.expanded {
-        width: 240px;
-        padding: 12px;
-    }
+  .timeline-toc.expanded {
+    width: 240px;
+    padding: 12px;
+  }
 
-    .timeline-toc.collapsed {
-        width: 40px;
-        height: 40px;
-    }
+  .timeline-toc.collapsed {
+    width: 40px;
+    height: 40px;
+  }
 
-    .toc-header h3 {
-        font-size: 11px;
-    }
+  .toc-header h3 {
+    font-size: 11px;
+  }
 
-    .toc-item {
-        font-size: 11px;
-        padding: 5px 6px;
-    }
+  .toc-item {
+    font-size: 11px;
+    padding: 5px 6px;
+  }
 
-    .toc-index {
-        width: 14px;
-        height: 14px;
-        font-size: 9px;
-    }
+  .toc-index {
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
+  }
 
-    /* Very small screen TOC positioning */
-    .timeline-toc.collapsed {
-        right: 60px;
-    }
+  /* Very small screen TOC positioning */
+  .timeline-toc.collapsed {
+    right: 60px;
+  }
 
-    .chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
-        left: 60px;
-    }
+  .chatgpt-timeline-bar.position-left~.timeline-toc.collapsed {
+    left: 60px;
+  }
 }
 
 /* Additional responsive rules for very small screens */
 @media (max-width: 320px) {
-    .chatgpt-timeline-bar {
-        right: 5px;
-        width: 20px;
-    }
+  .chatgpt-timeline-bar {
+    right: 5px;
+    width: 20px;
+  }
 
-    .chatgpt-timeline-bar.position-left {
-        left: 5px;
-    }
+  .chatgpt-timeline-bar.position-left {
+    left: 5px;
+  }
 
-    .timeline-toc.collapsed {
-        right: 35px;
-        width: 30px;
-        height: 30px;
-    }
+  .timeline-toc.collapsed {
+    right: 35px;
+    width: 30px;
+    height: 30px;
+  }
 
-    .chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
-        left: 35px;
-    }
+  .chatgpt-timeline-bar.position-left~.timeline-toc.collapsed {
+    left: 35px;
+  }
 }
 
 /* Ensure timeline never goes off-screen */
 @media (max-width: 280px) {
-    .chatgpt-timeline-bar {
-        right: 2px;
-        width: 18px;
-    }
+  .chatgpt-timeline-bar {
+    right: 2px;
+    width: 18px;
+  }
 
-    .chatgpt-timeline-bar.position-left {
-        left: 2px;
-    }
+  .chatgpt-timeline-bar.position-left {
+    left: 2px;
+  }
 
-    .timeline-toc.collapsed {
-        right: 25px;
-        width: 24px;
-        height: 24px;
-    }
+  .timeline-toc.collapsed {
+    right: 25px;
+    width: 24px;
+    height: 24px;
+  }
 
-    .chatgpt-timeline-bar.position-left ~ .timeline-toc.collapsed {
-        left: 25px;
-    }
+  .chatgpt-timeline-bar.position-left~.timeline-toc.collapsed {
+    left: 25px;
+  }
 }
 
 .timeline-dot {
-    position: absolute;
-    left: 50%;
-    /* Use normalized position `--n` mapped to track with padding */
-    top: calc(
-      var(--timeline-track-padding)
-      + (100% - 2 * var(--timeline-track-padding)) * var(--n, 0)
-    );
-    transform: translate(-50%, -50%);
-    width: var(--timeline-hit-size);   /* enlarged hit area */
-    height: var(--timeline-hit-size);  /* enlarged hit area */
-    background: transparent;           /* visible dot drawn via ::after */
-    border: none;
-    cursor: pointer;
-    padding: 0;
+  position: absolute;
+  left: 50%;
+  /* Use normalized position `--n` mapped to track with padding */
+  top: calc(var(--timeline-track-padding) + (100% - 2 * var(--timeline-track-padding)) * var(--n, 0));
+  transform: translate(-50%, -50%);
+  width: var(--timeline-hit-size);
+  /* enlarged hit area */
+  height: var(--timeline-hit-size);
+  /* enlarged hit area */
+  background: transparent;
+  /* visible dot drawn via ::after */
+  border: none;
+  cursor: pointer;
+  padding: 0;
 }
 
 .timeline-dot::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: var(--timeline-dot-size);
-    height: var(--timeline-dot-size);
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background-color: var(--timeline-dot-color);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--timeline-dot-size);
+  height: var(--timeline-dot-size);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: var(--timeline-dot-color);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* .timeline-dot::before {
@@ -779,57 +803,59 @@ html.dark .toc-header {
 } */
 
 /* Enhance visibility and interaction feedback on hover */
-.timeline-dot:hover::after { transform: translate(-50%, -50%) scale(1.15); }
+.timeline-dot:hover::after {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
 /* Keyboard accessibility: visible focus ring */
 .timeline-dot:focus-visible::after {
-    box-shadow: 0 0 6px var(--timeline-dot-active-color);
+  box-shadow: 0 0 6px var(--timeline-dot-active-color);
 }
+
 /* Style for the currently active dot */
 .timeline-dot.active::after {
-    box-shadow: 0 0 0 var(--timeline-active-ring) var(--timeline-dot-active-color), 0 0 6px var(--timeline-dot-active-color);
+  box-shadow: 0 0 0 var(--timeline-active-ring) var(--timeline-dot-active-color), 0 0 6px var(--timeline-dot-active-color);
 }
 
 /* Floating tooltip element */
 .timeline-tooltip {
-    position: fixed;
-    max-width: var(--timeline-tooltip-max);
-    background-color: var(--timeline-tooltip-bg);
-    color: var(--timeline-tooltip-text);
-    padding: var(--timeline-tooltip-pad-y) var(--timeline-tooltip-pad-x);
-    border-radius: var(--timeline-tooltip-radius);
-    border: var(--timeline-tooltip-border-w) solid var(--timeline-tooltip-border);
-    font-size: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: var(--timeline-tooltip-lh); /* integer px to avoid half-line bleed */
-    /* exactly 3 lines + paddings + borders */
-    max-height: calc(
-      3 * var(--timeline-tooltip-lh)
-      + 2 * var(--timeline-tooltip-pad-y)
-      + 2 * var(--timeline-tooltip-border-w)
-    );
-    box-shadow: var(--timeline-tooltip-shadow);
-    pointer-events: none;
-    z-index: 2147483647;
-    /* Clamp to 3 lines; ellipsis only at end */
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-    /* Animation base */
-    opacity: 0;
-    will-change: opacity, transform;
-    transition: opacity var(--timeline-tooltip-anim-in);
+  position: fixed;
+  max-width: var(--timeline-tooltip-max);
+  background-color: var(--timeline-tooltip-bg);
+  color: var(--timeline-tooltip-text);
+  padding: var(--timeline-tooltip-pad-y) var(--timeline-tooltip-pad-x);
+  border-radius: var(--timeline-tooltip-radius);
+  border: var(--timeline-tooltip-border-w) solid var(--timeline-tooltip-border);
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: var(--timeline-tooltip-lh);
+  /* integer px to avoid half-line bleed */
+  /* exactly 3 lines + paddings + borders */
+  max-height: calc(3 * var(--timeline-tooltip-lh) + 2 * var(--timeline-tooltip-pad-y) + 2 * var(--timeline-tooltip-border-w));
+  box-shadow: var(--timeline-tooltip-shadow);
+  pointer-events: none;
+  z-index: 2147483647;
+  /* Clamp to 3 lines; ellipsis only at end */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  /* Animation base */
+  opacity: 0;
+  will-change: opacity, transform;
+  transition: opacity var(--timeline-tooltip-anim-in);
 }
 
 /* Visible state toggled by JS */
 .timeline-tooltip.visible {
-    opacity: 1;
-    animation: timeline-tooltip-in var(--timeline-tooltip-anim-in);
+  opacity: 1;
+  animation: timeline-tooltip-in var(--timeline-tooltip-anim-in);
 }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
+
   .timeline-tooltip,
   .timeline-tooltip.visible {
     transition: opacity 120ms linear;
@@ -838,495 +864,559 @@ html.dark .toc-header {
 }
 
 /* Placement-aware transform origin for subtle scale */
-.timeline-tooltip[data-placement="left"] { transform-origin: right center; }
-.timeline-tooltip[data-placement="right"] { transform-origin: left center; }
+.timeline-tooltip[data-placement="left"] {
+  transform-origin: right center;
+}
+
+.timeline-tooltip[data-placement="right"] {
+  transform-origin: left center;
+}
 
 @keyframes timeline-tooltip-in {
-  from { transform: scale(0.96); }
-  to { transform: scale(1); }
+  from {
+    transform: scale(0.96);
+  }
+
+  to {
+    transform: scale(1);
+  }
 }
 
 /* Arrow (diamond) using rotated square; inherits colors */
 .timeline-tooltip::after {
-    content: '';
-    position: absolute;
-    width: var(--timeline-tooltip-arrow-size);
-    height: var(--timeline-tooltip-arrow-size);
-    background: var(--timeline-tooltip-bg);
-    border: var(--timeline-tooltip-border-w) solid var(--timeline-tooltip-border);
-    transform: rotate(45deg);
+  content: '';
+  position: absolute;
+  width: var(--timeline-tooltip-arrow-size);
+  height: var(--timeline-tooltip-arrow-size);
+  background: var(--timeline-tooltip-bg);
+  border: var(--timeline-tooltip-border-w) solid var(--timeline-tooltip-border);
+  transform: rotate(45deg);
 }
 
 .timeline-tooltip[data-placement="left"]::after {
-    right: calc(-1 * var(--timeline-tooltip-arrow-outside));
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-    border-left: none; /* visually merge with tooltip border */
-    border-bottom: none;
+  right: calc(-1 * var(--timeline-tooltip-arrow-outside));
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  border-left: none;
+  /* visually merge with tooltip border */
+  border-bottom: none;
 }
 
 .timeline-tooltip[data-placement="right"]::after {
-    left: calc(-1 * var(--timeline-tooltip-arrow-outside));
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-    border-right: none;
-    border-top: none;
+  left: calc(-1 * var(--timeline-tooltip-arrow-outside));
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  border-right: none;
+  border-top: none;
 }
 
 /* Hide native scrollbar of the track */
-.timeline-track::-webkit-scrollbar { width: 0; height: 0; }
-.timeline-track { scrollbar-width: none; }
+.timeline-track::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.timeline-track {
+  scrollbar-width: none;
+}
 
 /* Left-side slider to control timeline scroll (visual, low-key) */
 .timeline-slider {
-    position: absolute;
-    left: 2px;
-    top: var(--timeline-track-padding);
-    bottom: var(--timeline-track-padding);
-    width: 6px;
-    pointer-events: auto; /* allow handle to capture */
-    opacity: 0;
-    transition: opacity 180ms ease;
-    z-index: 10;
+  position: absolute;
+  left: 2px;
+  top: var(--timeline-track-padding);
+  bottom: var(--timeline-track-padding);
+  width: 6px;
+  pointer-events: auto;
+  /* allow handle to capture */
+  opacity: 0;
+  transition: opacity 180ms ease;
+  z-index: 10;
 }
-.timeline-slider.visible { opacity: 1; }
+
+.timeline-slider.visible {
+  opacity: 1;
+}
+
 .timeline-slider::before {
-    content: '';
-    position: absolute;
-    left: 2px;
-    top: 0; bottom: 0;
-    width: 2px;
-    background: rgba(0,0,0,0.08);
-    border-radius: 9999px;
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
 }
-html.dark .timeline-slider::before { background: rgba(255,255,255,0.10); }
+
+html.dark .timeline-slider::before {
+  background: rgba(255, 255, 255, 0.10);
+}
 
 .timeline-slider .timeline-handle {
-    position: absolute;
-    left: 0;
-    width: 6px;
-    height: 24px; /* updated by JS */
-    background: rgba(16,163,127,0.28); /* ChatGPT green with low opacity */
-    border-radius: 9999px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-    pointer-events: auto;
-    cursor: grab;
-    transition: background-color 120ms ease, opacity 120ms ease;
+  position: absolute;
+  left: 0;
+  width: 6px;
+  height: 24px;
+  /* updated by JS */
+  background: rgba(16, 163, 127, 0.28);
+  /* ChatGPT green with low opacity */
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  cursor: grab;
+  transition: background-color 120ms ease, opacity 120ms ease;
 }
-.timeline-slider .timeline-handle:hover { background: rgba(16,163,127,0.45); }
-.timeline-slider .timeline-handle:active { cursor: grabbing; }
+
+.timeline-slider .timeline-handle:hover {
+  background: rgba(16, 163, 127, 0.45);
+}
+
+.timeline-slider .timeline-handle:active {
+  cursor: grabbing;
+}
+
 /* External left-side slider (outside the timeline bar) */
 .timeline-left-slider {
-    position: fixed;
-    /* left set by JS using bar's rect (to the left of the bar) */
-    top: 0; /* updated by JS */
-    width: 12px; /* hit area; visual line narrower */
-    height: 160px; /* updated by JS */
-    opacity: 0;
-    transition: opacity 180ms ease;
-    z-index: 2147483646; /* align with bar */
-    pointer-events: none;
+  position: fixed;
+  /* left set by JS using bar's rect (to the left of the bar) */
+  top: 0;
+  /* updated by JS */
+  width: 12px;
+  /* hit area; visual line narrower */
+  height: 160px;
+  /* updated by JS */
+  opacity: 0;
+  transition: opacity 180ms ease;
+  z-index: 2147483646;
+  /* align with bar */
+  pointer-events: none;
 }
-.timeline-left-slider.visible { opacity: 1;  pointer-events: auto; }
+
+.timeline-left-slider.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .timeline-left-slider::before {
-    content: '';
-    position: absolute;
-    left: 5px; /* center thin track inside 12px hit area */
-    top: 0; bottom: 0;
-    width: 2px;
-    background: rgba(0,0,0,0.08);
-    border-radius: 9999px;
+  content: '';
+  position: absolute;
+  left: 5px;
+  /* center thin track inside 12px hit area */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
 }
-html.dark .timeline-left-slider::before { background: rgba(255,255,255,0.10); }
+
+html.dark .timeline-left-slider::before {
+  background: rgba(255, 255, 255, 0.10);
+}
+
 .timeline-left-slider .timeline-left-handle {
-    position: absolute;
-    left: 2px; /* centered for 8px width inside 12px hit area */
-    width: 8px;
-    height: 22px; /* fixed, concise */
-    background: rgba(16,163,127,0.28);
-    border-radius: 9999px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-    pointer-events: auto;
-    cursor: grab;
-    transition: background-color 120ms ease;
+  position: absolute;
+  left: 2px;
+  /* centered for 8px width inside 12px hit area */
+  width: 8px;
+  height: 22px;
+  /* fixed, concise */
+  background: rgba(16, 163, 127, 0.28);
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  cursor: grab;
+  transition: background-color 120ms ease;
 }
-.timeline-left-slider .timeline-left-handle:hover { background: rgba(16,163,127,0.45); }
-.timeline-left-slider .timeline-left-handle:active { cursor: grabbing; }
+
+.timeline-left-slider .timeline-left-handle:hover {
+  background: rgba(16, 163, 127, 0.45);
+}
+
+.timeline-left-slider .timeline-left-handle:active {
+  cursor: grabbing;
+}
 
 /* Timeline TOC Navigation Panel */
 .timeline-toc {
-    position: fixed;
-    top: 100px;
-    left: 80px;
-    width: 280px;
-    max-height: calc(100vh - 200px);
-    background: var(--timeline-tooltip-bg);
-    border: 1px solid var(--timeline-tooltip-border);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-    z-index: 2147483645;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: all 0.3s ease;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden;
+  position: fixed;
+  top: 100px;
+  left: 80px;
+  width: 280px;
+  max-height: calc(100vh - 200px);
+  background: var(--timeline-tooltip-bg);
+  border: 1px solid var(--timeline-tooltip-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 2147483645;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
 }
 
 html.dark .timeline-toc {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* TOC Header */
 .toc-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--timeline-tooltip-border);
-    background: rgba(0, 0, 0, 0.02);
-    cursor: grab;
-    user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--timeline-tooltip-border);
+  background: rgba(0, 0, 0, 0.02);
+  cursor: grab;
+  user-select: none;
 }
 
 html.dark .toc-header {
-    background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .toc-header h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--timeline-tooltip-text);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--timeline-tooltip-text);
 }
 
 .toc-close, .toc-expand {
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
 .toc-close:hover, .toc-expand:hover {
-    background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 html.dark .toc-close:hover, html.dark .toc-expand:hover {
-    background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .toc-close::before {
-    content: '×';
-    font-size: 16px;
-    color: var(--timeline-tooltip-text);
+  content: '×';
+  font-size: 16px;
+  color: var(--timeline-tooltip-text);
 }
 
 .toc-expand::before {
-    content: '−';
-    font-size: 16px;
-    color: var(--timeline-tooltip-text);
+  content: '−';
+  font-size: 16px;
+  color: var(--timeline-tooltip-text);
 }
 
 /* TOC Drag Handle */
 .toc-drag-handle {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.05);
-    transition: background-color 0.2s ease;
-    z-index: 10;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
+  z-index: 10;
 }
 
 .toc-drag-handle:hover {
-    background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 html.dark .toc-drag-handle {
-    background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 html.dark .toc-drag-handle:hover {
-    background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Collapsed TOC */
 .timeline-toc.collapsed {
-    width: 120px;
-    height: 40px;
-    cursor: grab;
+  width: 120px;
+  height: 40px;
+  cursor: grab;
 }
 
 .timeline-toc.collapsed .toc-header {
-    padding: 8px 12px;
-    border-bottom: none;
-    cursor: grab;
+  padding: 8px 12px;
+  border-bottom: none;
+  cursor: grab;
 }
 
 .timeline-toc.collapsed .toc-header h3 {
-    font-size: 12px;
-    text-align: center;
-    margin: 0;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
 }
 
 /* TOC List */
 .toc-list {
-    max-height: calc(100vh - 300px);
-    overflow-y: auto;
-    padding: 8px 0;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  padding: 8px 0;
 }
 
 .toc-item {
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-left: 3px solid transparent;
-    margin: 0 8px;
-    border-radius: 0 6px 6px 0;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-left: 3px solid transparent;
+  margin: 0 8px;
+  border-radius: 0 6px 6px 0;
 }
 
 .toc-item:hover {
-    background: rgba(16, 163, 127, 0.1);
+  background: rgba(16, 163, 127, 0.1);
 }
 
 .toc-item.active {
-    background: rgba(16, 163, 127, 0.15);
-    border-left-color: #10A37F;
-    color: #10A37F;
+  background: rgba(16, 163, 127, 0.15);
+  border-left-color: #10A37F;
+  color: #10A37F;
 }
 
 html.dark .toc-item.active {
-    border-left-color: #19C37D;
-    color: #19C37D;
+  border-left-color: #19C37D;
+  color: #19C37D;
 }
 
 .toc-index {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    background: var(--timeline-dot-active-color);
-    color: white;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    margin-right: 12px;
-    flex-shrink: 0;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: var(--timeline-dot-active-color);
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .toc-item.active .toc-index {
-    background: var(--timeline-dot-active-color);
+  background: var(--timeline-dot-active-color);
 }
 
 .toc-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .toc-user-message {
-    font-size: 11px;
-    font-weight: 500;
-    color: #333333;
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  color: #333333;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toc-chatgpt-reply {
-    font-size: 10px;
-    color: #666666;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-style: italic;
+  font-size: 10px;
+  color: #666666;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
 }
 
 .toc-text {
-    flex: 1;
-    font-size: 13px;
-    line-height: 1.4;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 /* Empty State */
 .toc-empty-state {
-    padding: 32px 16px;
-    text-align: center;
-    color: var(--timeline-tooltip-text);
-    opacity: 0.7;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--timeline-tooltip-text);
+  opacity: 0.7;
 }
 
 .empty-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
 }
 
 .empty-subtitle {
-    font-size: 12px;
-    line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* Drag States */
 .timeline-toc.dragging {
-    cursor: grabbing !important;
-    transform: rotate(2deg);
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
-    z-index: 2147483647;
+  cursor: grabbing !important;
+  transform: rotate(2deg);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 2147483647;
 }
 
 .timeline-toc.dragging .toc-header {
-    cursor: grabbing !important;
+  cursor: grabbing !important;
 }
 
 .timeline-toc.near-boundary {
-    border: 2px solid #ff6b6b;
-    animation: pulse 1s infinite;
+  border: 2px solid #ff6b6b;
+  animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Long press indicator */
 .timeline-toc.long-press-ready {
-    cursor: grab;
-    border: 2px solid #10A37F;
-    background: rgba(16, 163, 127, 0.05);
+  cursor: grab;
+  border: 2px solid #10A37F;
+  background: rgba(16, 163, 127, 0.05);
 }
 
 .timeline-toc.long-press-ready .toc-header {
-    background: rgba(16, 163, 127, 0.1);
+  background: rgba(16, 163, 127, 0.1);
 }
 
 html.dark .timeline-toc.long-press-ready {
-    border-color: #19C37D;
-    background: rgba(25, 195, 125, 0.05);
+  border-color: #19C37D;
+  background: rgba(25, 195, 125, 0.05);
 }
 
 html.dark .timeline-toc.long-press-ready .toc-header {
-    background: rgba(25, 195, 125, 0.1);
+  background: rgba(25, 195, 125, 0.1);
 }
 
 /* Timeline long press indicator */
 .chatgpt-timeline-bar.long-press-ready {
-    cursor: grab;
-    border: 2px solid #10A37F;
-    background: rgba(16, 163, 127, 0.05);
-    transition: all 0.2s ease;
+  cursor: grab;
+  border: 2px solid #10A37F;
+  background: rgba(16, 163, 127, 0.05);
+  transition: all 0.2s ease;
 }
 
 .chatgpt-timeline-bar.long-press-ready .timeline-drag-handle {
-    background: rgba(16, 163, 127, 0.1);
-    border-radius: 4px;
-    padding: 2px;
+  background: rgba(16, 163, 127, 0.1);
+  border-radius: 4px;
+  padding: 2px;
 }
 
 html.dark .chatgpt-timeline-bar.long-press-ready {
-    border-color: #19C37D;
-    background: rgba(25, 195, 125, 0.05);
+  border-color: #19C37D;
+  background: rgba(25, 195, 125, 0.05);
 }
 
 html.dark .chatgpt-timeline-bar.long-press-ready .timeline-drag-handle {
-    background: rgba(25, 195, 125, 0.1);
+  background: rgba(25, 195, 125, 0.1);
 }
 
 /* TOC Copy Button Styles */
 .toc-copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 24px;
-    height: 24px;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.2s ease;
-    color: #6B7280;
-    z-index: 1;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  color: #6B7280;
+  z-index: 1;
 }
 
 .toc-copy-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #374151;
-    transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.05);
+  color: #374151;
+  transform: scale(1.1);
 }
 
 .toc-copy-btn:active {
-    transform: scale(0.95);
+  transform: scale(0.95);
 }
 
 .toc-item:hover .toc-copy-btn {
-    opacity: 1;
+  opacity: 1;
 }
 
 /* Dark mode styles for copy button */
 html.dark .toc-copy-btn {
-    color: #9CA3AF;
+  color: #9CA3AF;
 }
 
 html.dark .toc-copy-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #D1D5DB;
+  background: rgba(255, 255, 255, 0.1);
+  color: #D1D5DB;
 }
 
 /* Make toc-item relative for absolute positioning of copy button */
 .toc-item {
-    position: relative;
+  position: relative;
 }
 
 /* Copy feedback animation */
 .toc-copy-feedback {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-weight: 500;
-    letter-spacing: 0.025em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.025em;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .timeline-toc {
-        width: 240px;
-        max-height: calc(100vh - 150px);
-    }
+  .timeline-toc {
+    width: 240px;
+    max-height: calc(100vh - 150px);
+  }
 
-    .timeline-toc.collapsed {
-        width: 100px;
-        height: 36px;
-    }
+  .timeline-toc.collapsed {
+    width: 100px;
+    height: 36px;
+  }
 
-    .toc-copy-btn {
-        opacity: 1; /* Always show on mobile */
-        width: 20px;
-        height: 20px;
-        top: 6px;
-        right: 6px;
-    }
+  .toc-copy-btn {
+    opacity: 1;
+    /* Always show on mobile */
+    width: 20px;
+    height: 20px;
+    top: 6px;
+    right: 6px;
+  }
 }

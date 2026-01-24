@@ -9,7 +9,8 @@ const DEFAULT_SETTINGS = {
     enableGeminiTimeline: true,
     chatgptWidth: 48,
     taskPageWidth: 48,
-    geminiWidth: 48
+    geminiWidth: 48,
+    grokWidth: 85
 };
 
 const SITE_CONFIGS = {
@@ -44,6 +45,19 @@ const SITE_CONFIGS = {
             '#chat-history',
             'infinite-scroller'
         ]
+    },
+    grok: {
+        id: 'grok',
+        hostMatches: ['grok.com'],
+        pathPrefixes: ['/c/', '/c'],
+        userTurnSelector: '[data-grok-turn="user"]',
+        allTurnSelector: '[data-grok-turn]',
+        assistantTurnSelector: '[data-grok-turn="assistant"]',
+        userTextSelector: null,
+        assistantTextSelector: null,
+        conversationRootSelectors: [
+            '[data-grok-turn]'
+        ]
     }
 };
 
@@ -56,6 +70,10 @@ function getSiteType(hostname = location.hostname) {
     }
     return 'unknown';
 }
+
+try {
+    document.documentElement.setAttribute('data-timeline-site', getSiteType());
+} catch {}
 
 function getSiteConfig(siteType = getSiteType()) {
     return SITE_CONFIGS[siteType] || SITE_CONFIGS.chatgpt;
@@ -477,6 +495,10 @@ class TimelineManager {
             // Apply Gemini width setting
             if (this.settings.geminiWidth) {
                 document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', this.settings.geminiWidth + 'rem');
+            }
+            // Apply Grok width setting
+            if (this.settings.grokWidth) {
+                document.documentElement.style.setProperty('--timeline-grok-content-max-width', this.settings.grokWidth + 'rem');
             }
 
             // Idempotent: ensure bar exists, then ensure track + content exist
@@ -3512,6 +3534,15 @@ class TimelineManager {
                 console.warn('Failed to update Gemini width:', error);
                 sendResponse({ success: false, error: error.message });
             }
+        } else if (request.action === 'updateGrokWidth') {
+            try {
+                // Update CSS variable for Grok width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-grok-content-max-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update Grok width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         }
     }
 }
@@ -4048,9 +4079,11 @@ async function applyStoredWidthSettings() {
         const chatgptWidth = saved.chatgptWidth ?? 48;
         const taskPageWidth = saved.taskPageWidth ?? 48;
         const geminiWidth = saved.geminiWidth ?? 48;
+        const grokWidth = saved.grokWidth ?? 85;
         document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', chatgptWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-task-page-max-width', taskPageWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', geminiWidth + 'rem');
+        document.documentElement.style.setProperty('--timeline-grok-content-max-width', grokWidth + 'rem');
     } catch (error) {
         console.warn('Failed to apply stored width settings:', error);
     }
@@ -4077,6 +4110,9 @@ async function handleStandaloneMessage(request, sendResponse) {
             }
             if (merged.geminiWidth) {
                 document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', merged.geminiWidth + 'rem');
+            }
+            if (merged.grokWidth) {
+                document.documentElement.style.setProperty('--timeline-grok-content-max-width', merged.grokWidth + 'rem');
             }
 
             const enabledForSite = isTimelineEnabledForSite(settingsCache, getSiteType());
@@ -4124,6 +4160,17 @@ async function handleStandaloneMessage(request, sendResponse) {
             sendResponse({ success: true });
         } catch (error) {
             console.warn('Failed to update Gemini width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateGrokWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-grok-content-max-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update Grok width (standalone):', error);
             sendResponse({ success: false, error: error.message });
         }
     }

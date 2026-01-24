@@ -119,6 +119,10 @@
     "message": "Gemini",
     "description": "Gemini width group heading"
   },
+  "grokWidthGroup": {
+    "message": "Grok",
+    "description": "Grok width group heading"
+  },
   "chatgptWidth": {
     "message": "ChatGPT 对话宽度",
     "description": "ChatGPT dialog width setting"
@@ -150,5 +154,13 @@
   "geminiWidthDescription": {
     "message": "调整 Gemini 对话框的最大宽度，拖动滑块实时生效",
     "description": "Description for Gemini width setting"
+  },
+  "grokWidthLabel": {
+    "message": "内容宽度：",
+    "description": "Grok width label"
+  },
+  "grokWidthDescription": {
+    "message": "调整 Grok 页面内容的最大宽度，拖动滑块实时生效",
+    "description": "Description for Grok width setting"
   }
 }
