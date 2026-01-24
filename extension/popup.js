@@ -11,9 +11,11 @@ class SettingsManager {
             enableLongPressDrag: true,
             enableChatGPTTimeline: true,
             enableGeminiTimeline: true,
+            enableClaudeTimeline: true,
             chatgptWidth: 48,
             taskPageWidth: 48,
             geminiWidth: 48,
+            claudeWidth: 48,
             grokWidth: 85
         };
         this.settings = { ...this.defaultSettings };
@@ -129,6 +131,15 @@ class SettingsManager {
                     });
                 }
 
+                if (this.settings.claudeWidth) {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'updateClaudeWidth',
+                        width: this.settings.claudeWidth + 'rem'
+                    }).catch(err => {
+                        console.log('Failed to update Claude width in real-time');
+                    });
+                }
+
                 if (this.settings.grokWidth) {
                     chrome.tabs.sendMessage(tabs[0].id, {
                         action: 'updateGrokWidth',
@@ -167,6 +178,11 @@ class SettingsManager {
 
         document.getElementById('enableGeminiTimeline').addEventListener('change', (e) => {
             this.settings.enableGeminiTimeline = e.target.checked;
+            this.saveSettings();
+        });
+
+        document.getElementById('enableClaudeTimeline').addEventListener('change', (e) => {
+            this.settings.enableClaudeTimeline = e.target.checked;
             this.saveSettings();
         });
 
@@ -248,6 +264,23 @@ class SettingsManager {
             this.saveSettings();
         });
 
+        // Claude 对话宽度滑块
+        const claudeWidthSlider = document.getElementById('claudeWidth');
+        const claudeWidthValue = document.getElementById('claudeWidthValue');
+
+        claudeWidthSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            claudeWidthValue.textContent = value + 'rem';
+            this.settings.claudeWidth = parseInt(value);
+            // 实时更新 CSS 变量
+            document.documentElement.style.setProperty('--timeline-claude-content-max-width', value + 'rem');
+            this.notifyContentScript();
+        });
+
+        claudeWidthSlider.addEventListener('change', () => {
+            this.saveSettings();
+        });
+
         // Grok 内容宽度滑块
         const grokWidthSlider = document.getElementById('grokWidth');
         const grokWidthValue = document.getElementById('grokWidthValue');
@@ -286,6 +319,7 @@ class SettingsManager {
         // 更新站点开关
         document.getElementById('enableChatGPTTimeline').checked = this.settings.enableChatGPTTimeline !== false;
         document.getElementById('enableGeminiTimeline').checked = this.settings.enableGeminiTimeline !== false;
+        document.getElementById('enableClaudeTimeline').checked = this.settings.enableClaudeTimeline !== false;
 
         // 更新启用目录导航复选框
         document.getElementById('enableTOC').checked = this.settings.enableTOC;
@@ -319,6 +353,12 @@ class SettingsManager {
         const geminiWidthValue = document.getElementById('geminiWidthValue');
         geminiWidthSlider.value = this.settings.geminiWidth;
         geminiWidthValue.textContent = this.settings.geminiWidth + 'rem';
+
+        // 更新 Claude 对话宽度滑块和显示值
+        const claudeWidthSlider = document.getElementById('claudeWidth');
+        const claudeWidthValue = document.getElementById('claudeWidthValue');
+        claudeWidthSlider.value = this.settings.claudeWidth;
+        claudeWidthValue.textContent = this.settings.claudeWidth + 'rem';
 
         // 更新 Grok 内容宽度滑块和显示值
         const grokWidthSlider = document.getElementById('grokWidth');

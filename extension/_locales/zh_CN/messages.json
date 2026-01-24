@@ -31,6 +31,10 @@
     "message": "启用 Gemini 时间线",
     "description": "Enable Gemini timeline"
   },
+  "enableClaudeTimeline": {
+    "message": "启用 Claude 时间线",
+    "description": "Enable Claude timeline"
+  },
   "positionRight": {
     "message": "右侧",
     "description": "Right position"
@@ -119,6 +123,10 @@
     "message": "Gemini",
     "description": "Gemini width group heading"
   },
+  "claudeWidthGroup": {
+    "message": "Claude",
+    "description": "Claude width group heading"
+  },
   "grokWidthGroup": {
     "message": "Grok",
     "description": "Grok width group heading"
@@ -154,6 +162,14 @@
   "geminiWidthDescription": {
     "message": "调整 Gemini 对话框的最大宽度，拖动滑块实时生效",
     "description": "Description for Gemini width setting"
+  },
+  "claudeWidthLabel": {
+    "message": "对话宽度：",
+    "description": "Claude width label"
+  },
+  "claudeWidthDescription": {
+    "message": "调整 Claude 对话框的最大宽度，拖动滑块实时生效",
+    "description": "Description for Claude width setting"
   },
   "grokWidthLabel": {
     "message": "内容宽度：",

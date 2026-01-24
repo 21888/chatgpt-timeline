@@ -41,6 +41,7 @@
   --timeline-chatgpt-html-content-max-width: 48rem;
   --timeline-task-page-max-width: 48rem;
   --timeline-gemini-conversation-max-width: 48rem;
+  --timeline-claude-content-max-width: 48rem;
   --timeline-grok-content-max-width: 85rem;
 }
 
@@ -60,6 +61,11 @@ article.text-token-text-primary div div[tabindex] {
 div.conversation-container.message-actions-hover-boundary.ng-star-inserted,
 user-query.ng-star-inserted {
   max-width: var(--timeline-gemini-conversation-max-width) !important;
+}
+
+/* Claude 对话宽度 */
+html[data-timeline-site="claude"] .max-w-3xl {
+  max-width: var(--timeline-claude-content-max-width) !important;
 }
 
 /* Grok 页面宽度 */

@@ -7,9 +7,11 @@ const DEFAULT_SETTINGS = {
     tocPosition: 'left',
     enableChatGPTTimeline: true,
     enableGeminiTimeline: true,
+    enableClaudeTimeline: true,
     chatgptWidth: 48,
     taskPageWidth: 48,
     geminiWidth: 48,
+    claudeWidth: 48,
     grokWidth: 85
 };
 
@@ -44,6 +46,20 @@ const SITE_CONFIGS = {
             'chat-window-content',
             '#chat-history',
             'infinite-scroller'
+        ]
+    },
+    claude: {
+        id: 'claude',
+        hostMatches: ['claude.ai'],
+        pathPrefixes: ['/chat/', '/chat'],
+        userTurnSelector: 'div[data-test-render-count] div[data-testid]',
+        allTurnSelector: 'div[data-test-render-count]',
+        assistantTurnSelector: null,
+        userTextSelector: null,
+        assistantTextSelector: null,
+        conversationRootSelectors: [
+            'div[data-test-render-count]',
+            'main'
         ]
     },
     grok: {
@@ -83,6 +99,7 @@ function isTimelineEnabledForSite(settings, siteType = getSiteType()) {
     if (!settings) return true;
     if (siteType === 'gemini') return settings.enableGeminiTimeline !== false;
     if (siteType === 'chatgpt') return settings.enableChatGPTTimeline !== false;
+    if (siteType === 'claude') return settings.enableClaudeTimeline !== false;
     return false;
 }
 
@@ -461,6 +478,7 @@ class TimelineManager {
                 document.querySelector('.conversation-container'),
                 document.querySelector('[class*="scroll"]'),
                 document.querySelector('[class*="container"]'),
+                document.scrollingElement || document.documentElement,
                 document.body
             ];
 
@@ -479,6 +497,22 @@ class TimelineManager {
             console.warn('Using document.body as final fallback scroll container');
         }
 
+        // Prefer the real scrolling element when the chosen container isn't scrollable
+        const scrollingElement = document.scrollingElement || document.documentElement || document.body;
+        if (scrollingElement) {
+            const isScrollable = (el) => {
+                if (!el || el.nodeType !== Node.ELEMENT_NODE) return false;
+                return el.scrollHeight > (el.clientHeight + 1);
+            };
+            if (this.scrollContainer === document.body && scrollingElement !== document.body) {
+                this.scrollContainer = scrollingElement;
+                console.log('Using document.scrollingElement as scroll container:', this.scrollContainer);
+            } else if (!isScrollable(this.scrollContainer) && isScrollable(scrollingElement)) {
+                this.scrollContainer = scrollingElement;
+                console.log('Switching to scrollable document.scrollingElement:', this.scrollContainer);
+            }
+        }
+
         return true; // Always return true now that we have fallbacks
     }
     
@@ -495,6 +529,10 @@ class TimelineManager {
             // Apply Gemini width setting
             if (this.settings.geminiWidth) {
                 document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', this.settings.geminiWidth + 'rem');
+            }
+            // Apply Claude width setting
+            if (this.settings.claudeWidth) {
+                document.documentElement.style.setProperty('--timeline-claude-content-max-width', this.settings.claudeWidth + 'rem');
             }
             // Apply Grok width setting
             if (this.settings.grokWidth) {
@@ -720,6 +758,14 @@ class TimelineManager {
             const nodes = Array.from(this.conversationContainer.querySelectorAll('user-query'));
             return nodes.filter(node => node.querySelector('.query-text') || (node.textContent || '').trim().length > 0);
         }
+        if (this.siteType === 'claude') {
+            const nodes = Array.from(this.conversationContainer.querySelectorAll('div[data-test-render-count]'));
+            return nodes.filter(node => node.querySelector('div[data-testid]'));
+        }
+        const siteConfig = getSiteConfig(this.siteType);
+        if (siteConfig?.userTurnSelector) {
+            return Array.from(this.conversationContainer.querySelectorAll(siteConfig.userTurnSelector));
+        }
         return Array.from(this.conversationContainer.querySelectorAll('article[data-turn="user"]'));
     }
 
@@ -735,6 +781,11 @@ class TimelineManager {
             const container = this.getTurnContainer(turnElement);
             return container?.id || turnElement.id || `gemini-turn-${index}`;
         }
+        if (this.siteType === 'claude') {
+            const container = turnElement.closest('div[data-test-render-count]');
+            const renderId = container?.getAttribute('data-test-render-count');
+            if (renderId) return `claude-turn-${renderId}`;
+        }
         return turnElement.dataset.turnId || turnElement.id || `turn-${index}`;
     }
 
@@ -745,6 +796,9 @@ class TimelineManager {
             return container?.querySelector('user-query .query-text') ||
                    container?.querySelector('user-query') ||
                    turnElement;
+        }
+        if (this.siteType === 'claude') {
+            return turnElement.querySelector('div[data-testid]') || turnElement;
         }
         return turnElement;
     }
@@ -1241,10 +1295,18 @@ class TimelineManager {
     }
     
     smoothScrollTo(targetElement, duration = 600) {
-        const containerRect = this.scrollContainer.getBoundingClientRect();
+        const scrollContainer = this.scrollContainer || document.scrollingElement || document.documentElement || document.body;
+        if (!scrollContainer) return;
+        const isRootScroll = scrollContainer === document.body ||
+            scrollContainer === document.documentElement ||
+            scrollContainer === document.scrollingElement;
         const targetRect = targetElement.getBoundingClientRect();
-        const targetPosition = targetRect.top - containerRect.top + this.scrollContainer.scrollTop;
-        const startPosition = this.scrollContainer.scrollTop;
+        const startPosition = isRootScroll
+            ? (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0)
+            : scrollContainer.scrollTop;
+        const targetPosition = isRootScroll
+            ? (targetRect.top + startPosition)
+            : (targetRect.top - scrollContainer.getBoundingClientRect().top + scrollContainer.scrollTop);
         const distance = targetPosition - startPosition;
         let startTime = null;
 
@@ -1253,11 +1315,19 @@ class TimelineManager {
             if (startTime === null) startTime = currentTime;
             const timeElapsed = currentTime - startTime;
             const run = this.easeInOutQuad(timeElapsed, startPosition, distance, duration);
-            this.scrollContainer.scrollTop = run;
+            if (isRootScroll) {
+                window.scrollTo(0, run);
+            } else {
+                scrollContainer.scrollTop = run;
+            }
             if (timeElapsed < duration) {
                 requestAnimationFrame(animation);
             } else {
-                this.scrollContainer.scrollTop = targetPosition;
+                if (isRootScroll) {
+                    window.scrollTo(0, targetPosition);
+                } else {
+                    scrollContainer.scrollTop = targetPosition;
+                }
                 this.isScrolling = false;
             }
         };
@@ -3534,6 +3604,15 @@ class TimelineManager {
                 console.warn('Failed to update Gemini width:', error);
                 sendResponse({ success: false, error: error.message });
             }
+        } else if (request.action === 'updateClaudeWidth') {
+            try {
+                // Update CSS variable for Claude width (width already includes unit)
+                document.documentElement.style.setProperty('--timeline-claude-content-max-width', request.width);
+                sendResponse({ success: true });
+            } catch (error) {
+                console.warn('Failed to update Claude width:', error);
+                sendResponse({ success: false, error: error.message });
+            }
         } else if (request.action === 'updateGrokWidth') {
             try {
                 // Update CSS variable for Grok width (width already includes unit)
@@ -4079,10 +4158,12 @@ async function applyStoredWidthSettings() {
         const chatgptWidth = saved.chatgptWidth ?? 48;
         const taskPageWidth = saved.taskPageWidth ?? 48;
         const geminiWidth = saved.geminiWidth ?? 48;
+        const claudeWidth = saved.claudeWidth ?? 48;
         const grokWidth = saved.grokWidth ?? 85;
         document.documentElement.style.setProperty('--timeline-chatgpt-html-content-max-width', chatgptWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-task-page-max-width', taskPageWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', geminiWidth + 'rem');
+        document.documentElement.style.setProperty('--timeline-claude-content-max-width', claudeWidth + 'rem');
         document.documentElement.style.setProperty('--timeline-grok-content-max-width', grokWidth + 'rem');
     } catch (error) {
         console.warn('Failed to apply stored width settings:', error);
@@ -4110,6 +4191,9 @@ async function handleStandaloneMessage(request, sendResponse) {
             }
             if (merged.geminiWidth) {
                 document.documentElement.style.setProperty('--timeline-gemini-conversation-max-width', merged.geminiWidth + 'rem');
+            }
+            if (merged.claudeWidth) {
+                document.documentElement.style.setProperty('--timeline-claude-content-max-width', merged.claudeWidth + 'rem');
             }
             if (merged.grokWidth) {
                 document.documentElement.style.setProperty('--timeline-grok-content-max-width', merged.grokWidth + 'rem');
@@ -4160,6 +4244,17 @@ async function handleStandaloneMessage(request, sendResponse) {
             sendResponse({ success: true });
         } catch (error) {
             console.warn('Failed to update Gemini width (standalone):', error);
+            sendResponse({ success: false, error: error.message });
+        }
+        return;
+    }
+
+    if (request.action === 'updateClaudeWidth') {
+        try {
+            document.documentElement.style.setProperty('--timeline-claude-content-max-width', request.width);
+            sendResponse({ success: true });
+        } catch (error) {
+            console.warn('Failed to update Claude width (standalone):', error);
             sendResponse({ success: false, error: error.message });
         }
         return;

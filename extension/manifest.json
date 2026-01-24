@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "__MSG_extensionName__",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "__MSG_extensionDescription__",
   "action": {
     "default_popup": "popup.html",
@@ -23,7 +23,8 @@
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://gemini.google.com/*",
-        "https://grok.com/*"
+        "https://grok.com/*",
+        "https://claude.ai/*"
       ],
       "js": ["content.js"],
       "css": ["styles.css"]

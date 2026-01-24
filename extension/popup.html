@@ -55,6 +55,13 @@
                         <span data-i18n="enableGeminiTimeline">启用 Gemini 时间线</span>
                     </label>
                 </div>
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="enableClaudeTimeline">
+                        <span class="checkmark"></span>
+                        <span data-i18n="enableClaudeTimeline">启用 Claude 时间线</span>
+                    </label>
+                </div>
             </section>
 
             <!-- 页面宽度设置 -->
@@ -85,6 +92,16 @@
                         <span id="geminiWidthValue" class="setting-value">48rem</span>
                     </div>
                     <p class="setting-description" data-i18n="geminiWidthDescription">调整 Gemini 对话框的最大宽度，拖动滑块实时生效</p>
+                </div>
+
+                <div class="setting-subsection">
+                    <h3 data-i18n="claudeWidthGroup">Claude</h3>
+                    <div class="setting-group">
+                        <label class="setting-label" data-i18n="claudeWidthLabel">对话宽度：</label>
+                        <input type="range" id="claudeWidth" min="20" max="150" value="48" class="setting-slider">
+                        <span id="claudeWidthValue" class="setting-value">48rem</span>
+                    </div>
+                    <p class="setting-description" data-i18n="claudeWidthDescription">调整 Claude 对话框的最大宽度，拖动滑块实时生效</p>
                 </div>
 
                 <div class="setting-subsection">

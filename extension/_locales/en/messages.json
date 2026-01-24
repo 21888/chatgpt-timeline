@@ -31,6 +31,10 @@
     "message": "Enable Gemini Timeline",
     "description": "Enable Gemini timeline"
   },
+  "enableClaudeTimeline": {
+    "message": "Enable Claude Timeline",
+    "description": "Enable Claude timeline"
+  },
   "positionRight": {
     "message": "Right",
     "description": "Right position"
@@ -119,6 +123,10 @@
     "message": "Gemini",
     "description": "Gemini width group heading"
   },
+  "claudeWidthGroup": {
+    "message": "Claude",
+    "description": "Claude width group heading"
+  },
   "grokWidthGroup": {
     "message": "Grok",
     "description": "Grok width group heading"
@@ -154,6 +162,14 @@
   "geminiWidthDescription": {
     "message": "Adjust the maximum width of Gemini dialog, drag the slider for real-time effect",
     "description": "Description for Gemini width setting"
+  },
+  "claudeWidthLabel": {
+    "message": "Dialog Width:",
+    "description": "Claude width label"
+  },
+  "claudeWidthDescription": {
+    "message": "Adjust the maximum width of Claude dialog, drag the slider for real-time effect",
+    "description": "Description for Claude width setting"
   },
   "grokWidthLabel": {
     "message": "Content Width:",
