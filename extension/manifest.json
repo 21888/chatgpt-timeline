@@ -8,9 +8,14 @@
     "default_popup": "popup.html",
     "default_title": "__MSG_popupTitle__"
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "icons": {
     "16": "assets/icon16.png",

@@ -120,81 +120,81 @@ class SettingsManager {
     }
 
     notifyContentScript() {
-        // 通过消息传递通知content script
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0]) {
-                chrome.tabs.sendMessage(tabs[0].id, {
-                    action: 'updateSettings',
-                    settings: this.settings
-                }).catch(err => {
-                    console.log('Content script not ready, settings will be applied on next page load');
-                });
+        const sendToTab = (tabId) => {
+            chrome.tabs.sendMessage(tabId, {
+                action: 'updateSettings',
+                settings: this.settings
+            }).catch(() => {});
 
-                // 实时更新 CSS 变量（如果在 ChatGPT 页面上）
-                if (this.settings.chatgptWidth) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateChatGPTWidth',
-                        width: this.settings.chatgptWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update ChatGPT width in real-time');
-                    });
-                }
-
-                if (this.settings.taskPageWidth) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateTaskPageWidth',
-                        width: this.settings.taskPageWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update task page width in real-time');
-                    });
-                }
-
-                if (this.settings.geminiWidth) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateGeminiWidth',
-                        width: this.settings.geminiWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update Gemini width in real-time');
-                    });
-                }
-
-                if (this.settings.claudeWidth) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateClaudeWidth',
-                        width: this.settings.claudeWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update Claude width in real-time');
-                    });
-                }
-
-                if (Number.isFinite(this.settings.deepseekWidth)) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateDeepseekWidth',
-                        width: this.settings.deepseekWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update DeepSeek width in real-time');
-                    });
-                }
-
-                if (Number.isFinite(this.settings.doubaoWidth)) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateDoubaoWidth',
-                        width: this.settings.doubaoWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update Doubao width in real-time');
-                    });
-                }
-
-                if (this.settings.grokWidth) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateGrokWidth',
-                        width: this.settings.grokWidth + 'rem'
-                    }).catch(err => {
-                        console.log('Failed to update Grok width in real-time');
-                    });
-                }
+            if (this.settings.chatgptWidth) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateChatGPTWidth',
+                    width: this.settings.chatgptWidth + 'rem'
+                }).catch(() => {});
             }
-        });
+            if (this.settings.taskPageWidth) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateTaskPageWidth',
+                    width: this.settings.taskPageWidth + 'rem'
+                }).catch(() => {});
+            }
+            if (this.settings.geminiWidth) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateGeminiWidth',
+                    width: this.settings.geminiWidth + 'rem'
+                }).catch(() => {});
+            }
+            if (this.settings.claudeWidth) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateClaudeWidth',
+                    width: this.settings.claudeWidth + 'rem'
+                }).catch(() => {});
+            }
+            if (Number.isFinite(this.settings.deepseekWidth)) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateDeepseekWidth',
+                    width: this.settings.deepseekWidth + 'rem'
+                }).catch(() => {});
+            }
+            if (Number.isFinite(this.settings.doubaoWidth)) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateDoubaoWidth',
+                    width: this.settings.doubaoWidth + 'rem'
+                }).catch(() => {});
+            }
+            if (this.settings.grokWidth) {
+                chrome.tabs.sendMessage(tabId, {
+                    action: 'updateGrokWidth',
+                    width: this.settings.grokWidth + 'rem'
+                }).catch(() => {});
+            }
+        };
+
+        const isOptionsPage = typeof window !== 'undefined' && window.location &&
+            (window.location.pathname === '/options.html' || String(window.location.pathname).endsWith('options.html'));
+
+        if (isOptionsPage) {
+            // 设置页：通知所有已注入 content script 的标签页
+            const contentScriptUrls = [
+                'https://chatgpt.com/*',
+                'https://chat.openai.com/*',
+                'https://gemini.google.com/*',
+                'https://grok.com/*',
+                'https://claude.ai/*',
+                'https://chat.deepseek.com/*',
+                'https://deepseek.com/*',
+                'https://www.doubao.com/*',
+                'https://doubao.com/*'
+            ];
+            chrome.tabs.query({ url: contentScriptUrls }, (tabs) => {
+                tabs.forEach((tab) => sendToTab(tab.id));
+            });
+        } else {
+            // Popup：仅通知当前窗口的当前标签
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) sendToTab(tabs[0].id);
+            });
+        }
     }
 
     setupEventListeners() {

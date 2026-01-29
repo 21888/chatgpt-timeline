@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Add timeline, TOC, copy reply, and page width controls for ChatGPT, Gemini, Claude, DeepSeek, Doubao, and Grok.",
+    "message": "Interactive navigation and layout tools for major AI chat platforms, featuring timelines, TOC, and custom width controls.",
     "description": "Extension description"
   },
   "popupTitle": {
@@ -206,5 +206,25 @@
   "grokWidthDescription": {
     "message": "Adjust the maximum width of Grok content, drag the slider for real-time effect",
     "description": "Description for Grok width setting"
+  },
+  "optionsNavBasic": {
+    "message": "Basic",
+    "description": "Options page nav: basic settings"
+  },
+  "optionsNavSources": {
+    "message": "Sources",
+    "description": "Options page nav: timeline sources"
+  },
+  "optionsNavWidth": {
+    "message": "Width",
+    "description": "Options page nav: page width"
+  },
+  "optionsNavToc": {
+    "message": "TOC",
+    "description": "Options page nav: table of contents"
+  },
+  "optionsNavAdvanced": {
+    "message": "Other",
+    "description": "Options page nav: other settings"
   }
 }

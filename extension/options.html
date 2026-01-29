@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh_CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="popupTitle">ChatGPT Timeline 设置</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 data-i18n="popupTitle">ChatGPT Timeline 设置</h1>
+            <p class="description" data-i18n="popupDescription">自定义时间线显示和导航选项</p>
+
+            <!-- 语言选择器 -->
+            <div class="language-selector">
+                <label data-i18n="languageSelector">语言选择：</label>
+                <select id="languageSelect" class="setting-select">
+                    <option value="auto" data-i18n="languageAuto">自动检测</option>
+                    <option value="zh_CN" data-i18n="languageChinese">中文</option>
+                    <option value="en" data-i18n="languageEnglish">英文</option>
+                </select>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="settings-layout">
+                <nav class="settings-nav" aria-label="Settings navigation">
+                    <button type="button" class="settings-nav-item is-active" data-target="panel-basic" data-i18n="optionsNavBasic">基本</button>
+                    <button type="button" class="settings-nav-item" data-target="panel-sources" data-i18n="optionsNavSources">站点</button>
+                    <button type="button" class="settings-nav-item" data-target="panel-width" data-i18n="optionsNavWidth">宽度</button>
+                    <button type="button" class="settings-nav-item" data-target="panel-toc" data-i18n="optionsNavToc">目录</button>
+                    <button type="button" class="settings-nav-item" data-target="panel-advanced" data-i18n="optionsNavAdvanced">其它</button>
+                </nav>
+
+                <div class="settings-panels">
+                    <div class="settings-panel is-active" id="panel-basic">
+                        <!-- 时间线位置设置 -->
+                        <section class="setting-section">
+                            <h2 data-i18n="timelinePosition">时间线显示位置</h2>
+                            <div class="setting-group">
+                                <label class="setting-label" data-i18n="timelinePosition">显示位置：</label>
+                                <select id="timelinePosition" class="setting-select">
+                                    <option value="right" data-i18n="positionRight">右侧</option>
+                                    <option value="left" data-i18n="positionLeft">左侧</option>
+                                    <option value="top" data-i18n="positionTop">顶部</option>
+                                    <option value="bottom" data-i18n="positionBottom">底部</option>
+                                </select>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="settings-panel" id="panel-sources" hidden>
+                        <!-- 时间线站点开关 -->
+                        <section class="setting-section">
+                            <h2 data-i18n="timelineSources">时间线启用站点</h2>
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="enableChatGPTTimeline">
+                                    <span class="checkmark"></span>
+                                    <span data-i18n="enableChatGPTTimeline">启用 ChatGPT 时间线</span>
+                                </label>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="enableGeminiTimeline">
+                                    <span class="checkmark"></span>
+                                    <span data-i18n="enableGeminiTimeline">启用 Gemini 时间线</span>
+                                </label>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="enableClaudeTimeline">
+                                    <span class="checkmark"></span>
+                                    <span data-i18n="enableClaudeTimeline">启用 Claude 时间线</span>
+                                </label>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="enableDoubaoTimeline">
+                                    <span class="checkmark"></span>
+                                    <span data-i18n="enableDoubaoTimeline">启用 豆包 时间线</span>
+                                </label>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="settings-panel" id="panel-width" hidden>
+                        <!-- 页面宽度设置 -->
+                        <section class="setting-section">
+                            <h2 id="pageWidthHeading" data-i18n="pageWidthSettings">页面宽度</h2>
+                            <div class="width-tabs" id="pageWidthTabs">
+                                <div class="width-tab-list" role="tablist" aria-labelledby="pageWidthHeading">
+                                    <button type="button" class="width-tab is-active" role="tab" aria-selected="true" aria-controls="width-panel-chatgpt" id="width-tab-chatgpt" data-target="width-panel-chatgpt" data-i18n="chatgptWidthGroup">ChatGPT</button>
+                                    <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-gemini" id="width-tab-gemini" data-target="width-panel-gemini" data-i18n="geminiWidthGroup">Gemini</button>
+                                    <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-claude" id="width-tab-claude" data-target="width-panel-claude" data-i18n="claudeWidthGroup">Claude</button>
+                                    <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-deepseek" id="width-tab-deepseek" data-target="width-panel-deepseek" data-i18n="deepseekWidthGroup">DeepSeek</button>
+                                    <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-doubao" id="width-tab-doubao" data-target="width-panel-doubao" data-i18n="doubaoWidthGroup">豆包</button>
+                                    <button type="button" class="width-tab" role="tab" aria-selected="false" aria-controls="width-panel-grok" id="width-tab-grok" data-target="width-panel-grok" data-i18n="grokWidthGroup">Grok</button>
+                                </div>
+
+                                <div class="setting-subsection width-tab-panel is-active" role="tabpanel" id="width-panel-chatgpt" aria-labelledby="width-tab-chatgpt">
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="chatgptWidthLabel">对话宽度：</label>
+                                        <input type="range" id="chatgptWidth" min="20" max="150" value="48" class="setting-slider">
+                                        <span id="chatgptWidthValue" class="setting-value">48rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="chatgptWidthDescription">调整 ChatGPT 对话框的最大宽度，拖动滑块实时生效</p>
+
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="taskPageWidthLabel">页面宽度：</label>
+                                        <input type="range" id="taskPageWidth" min="20" max="150" value="48" class="setting-slider">
+                                        <span id="taskPageWidthValue" class="setting-value">48rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="taskPageWidthDescription">调整任务页面内容的最大宽度，拖动滑块实时生效</p>
+                                </div>
+
+                                <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-gemini" aria-labelledby="width-tab-gemini" hidden>
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="geminiWidthLabel">对话宽度：</label>
+                                        <input type="range" id="geminiWidth" min="20" max="150" value="48" class="setting-slider">
+                                        <span id="geminiWidthValue" class="setting-value">48rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="geminiWidthDescription">调整 Gemini 对话框的最大宽度，拖动滑块实时生效</p>
+                                </div>
+
+                                <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-claude" aria-labelledby="width-tab-claude" hidden>
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="claudeWidthLabel">对话宽度：</label>
+                                        <input type="range" id="claudeWidth" min="20" max="150" value="48" class="setting-slider">
+                                        <span id="claudeWidthValue" class="setting-value">48rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="claudeWidthDescription">调整 Claude 对话框的最大宽度，拖动滑块实时生效</p>
+                                </div>
+
+                                <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-deepseek" aria-labelledby="width-tab-deepseek" hidden>
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="deepseekWidthLabel">内容宽度：</label>
+                                        <input type="range" id="deepseekWidth" min="0" max="60" value="55" class="setting-slider">
+                                        <span id="deepseekWidthValue" class="setting-value">55rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="deepseekWidthDescription">调整 DeepSeek 内容宽度（通过左右内边距实现），拖动滑块实时生效</p>
+                                </div>
+
+                                <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-doubao" aria-labelledby="width-tab-doubao" hidden>
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="doubaoWidthLabel">内容宽度：</label>
+                                        <input type="range" id="doubaoWidth" min="0" max="60" value="55" class="setting-slider">
+                                        <span id="doubaoWidthValue" class="setting-value">55rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="doubaoWidthDescription">调整 豆包 内容宽度（通过左右内边距实现），拖动滑块实时生效</p>
+                                </div>
+
+                                <div class="setting-subsection width-tab-panel" role="tabpanel" id="width-panel-grok" aria-labelledby="width-tab-grok" hidden>
+                                    <div class="setting-group">
+                                        <label class="setting-label" data-i18n="grokWidthLabel">内容宽度：</label>
+                                        <input type="range" id="grokWidth" min="20" max="150" value="85" class="setting-slider">
+                                        <span id="grokWidthValue" class="setting-value">85rem</span>
+                                    </div>
+                                    <p class="setting-description" data-i18n="grokWidthDescription">调整 Grok 页面内容的最大宽度，拖动滑块实时生效</p>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="settings-panel" id="panel-toc" hidden>
+                        <!-- 目录导航设置 -->
+                        <section class="setting-section">
+                            <h2 data-i18n="tocNavigation">目录导航</h2>
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="enableTOC">
+                                    <span class="checkmark"></span>
+                                    <span data-i18n="enableTOC">启用目录导航</span>
+                                </label>
+                            </div>
+
+                            <div class="setting-group" id="tocOptions" style="display: none;">
+                                <label class="setting-label" data-i18n="tocWidth">导航宽度：</label>
+                                <input type="range" id="tocWidth" min="200" max="400" value="280" class="setting-slider">
+                                <span id="tocWidthValue" class="setting-value">280px</span>
+                            </div>
+
+                            <div class="setting-group" id="tocPositionOptions" style="display: none;">
+                                <label class="setting-label" data-i18n="tocPosition">导航位置：</label>
+                                <select id="tocPosition" class="setting-select">
+                                    <option value="left" data-i18n="tocPositionLeft">时间线左侧</option>
+                                    <option value="right" data-i18n="tocPositionRight">时间线右侧</option>
+                                </select>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="settings-panel" id="panel-advanced" hidden>
+                        <!-- 拖拽设置 -->
+                        <section class="setting-section">
+                            <h2 data-i18n="dragSettings">拖拽设置</h2>
+                            <div class="setting-group">
+                                <label class="setting-checkbox">
+                                    <input type="checkbox" id="enableDragging">
+                                    <span class="checkmark"></span>
+                                    <span data-i18n="enableDragging">允许长按拖拽移动</span>
+                                </label>
+                            </div>
+                            <p class="setting-description" data-i18n="dragDescription">同时控制时间线和目录导航的长按拖拽功能</p>
+                        </section>
+
+                        <!-- 重置按钮 -->
+                        <section class="setting-section">
+                            <button id="resetSettings" class="reset-button" data-i18n="resetButton">重置为默认设置</button>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p data-i18n="settingsTip">设置将在页面刷新后生效</p>
+        </footer>
+    </div>
+
+    <script src="i18n.js"></script>
+    <script src="options.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
