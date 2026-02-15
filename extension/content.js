@@ -305,6 +305,8 @@ class TimelineManager {
         this.onTOCDragUp = null;
         this.tocOriginalCursor = null;
         this.tocDragScrollSyncDisabled = false;
+        this.lastTOCSignature = '';
+        this.lastTOCItemCount = 0;
 
         // Position persistence
         this.positionKey = 'chatgptTimelinePosition';
@@ -2423,6 +2425,8 @@ class TimelineManager {
         this.ui = { timelineBar: null, tooltip: null };
         this.markers = [];
         this.markerById.clear();
+        this.lastTOCSignature = '';
+        this.lastTOCItemCount = 0;
         this.activeTurnId = null;
         this.scrollContainer = null;
         this.conversationContainer = null;
@@ -2967,12 +2971,27 @@ class TimelineManager {
     }
 
     updateTOCContent(tocContainer) {
-        // Check if we have any markers
         if (this.markers.length === 0) {
+            this.lastTOCSignature = '';
+            this.lastTOCItemCount = 0;
             this.updateEmptyState(tocContainer);
-        } else {
-            this.updateTOCList(tocContainer);
+            return;
         }
+
+        const markerCount = this.markers.length;
+        const hasExistingList = !!tocContainer.querySelector('.toc-list');
+        const hasSameCount = markerCount === this.lastTOCItemCount;
+        const nextSignature = hasSameCount ? this.buildTOCSignature(this.markers) : null;
+
+        if (hasSameCount && nextSignature === this.lastTOCSignature && hasExistingList) {
+            // Keep active state in sync even when list structure is unchanged
+            this.updateTOCHighlight();
+            return;
+        }
+
+        this.updateTOCList(tocContainer);
+        this.lastTOCSignature = nextSignature || this.buildTOCSignature(this.markers);
+        this.lastTOCItemCount = markerCount;
     }
 
     updateEmptyState(tocContainer) {
@@ -3009,9 +3028,10 @@ class TimelineManager {
 
         // Add current markers
         this.markers.forEach((marker, index) => {
+            const markerId = marker.id;
             const item = document.createElement('div');
-            item.className = `toc-item${marker.id === this.activeTurnId ? ' active' : ''}`;
-            item.dataset.turnId = marker.id;
+            item.className = `toc-item${markerId === this.activeTurnId ? ' active' : ''}`;
+            item.dataset.turnId = markerId;
 
             // Show user's message as title and ChatGPT's reply as content
             const userText = this.truncateText(marker.summary, 25);
@@ -3039,7 +3059,10 @@ class TimelineManager {
                     return;
                 }
                 e.stopPropagation();
-                this.smoothScrollTo(marker.element);
+                const targetElement = this.markerById.get(markerId) || marker.element;
+                if (targetElement) {
+                    this.smoothScrollTo(targetElement);
+                }
                 // Ensure TOC remains visible after navigation
                 setTimeout(() => {
                     this.ensureTOCVisible();
@@ -3053,12 +3076,26 @@ class TimelineManager {
             if (copyBtn) {
                 copyBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    this.copyQAText(marker);
+                    const latestMarker = this.markers.find(current => current.id === markerId) || marker;
+                    this.copyQAText(latestMarker);
                 });
             }
 
             list.appendChild(item);
         });
+    }
+
+    buildTOCSignature(markers = this.markers) {
+        if (!Array.isArray(markers) || markers.length === 0) {
+            return '';
+        }
+
+        return markers.map((marker, index) => {
+            const markerId = marker?.id || `marker-${index}`;
+            const summary = this.normalizeText(marker?.summary || '');
+            const chatgptReply = this.normalizeText(marker?.chatgptReply || '');
+            return `${markerId}\u001f${summary}\u001f${chatgptReply}`;
+        }).join('\u001e');
     }
 
     applyTOCPosition(tocContainer, forceDefault = false) {
