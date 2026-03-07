@@ -8,6 +8,12 @@
 
 Interactive timeline for AI conversations (ChatGPT, Gemini, Claude, DeepSeek, Doubao, Grok) - click to navigate, drag to reposition, adapts to themes.
 
+## Built with Codex
+
+This project was developed entirely with [OpenAI Codex](https://openai.com/codex/).
+
+Special thanks to Codex for helping build this project.
+
 ## ✅ Supported Platforms
 
 - ChatGPT
