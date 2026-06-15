@@ -205,11 +205,14 @@ class SettingsManager {
 
         this.setupWidthTabs();
 
-        // 进度条位置选择
-        document.getElementById('timelinePosition').addEventListener('change', (e) => {
-            this.settings.timelinePosition = e.target.value;
-            this.saveSettings();
-        });
+        // 进度条位置选择（仅 options 页保留）
+        const timelinePositionSelect = document.getElementById('timelinePosition');
+        if (timelinePositionSelect) {
+            timelinePositionSelect.addEventListener('change', (e) => {
+                this.settings.timelinePosition = e.target.value;
+                this.saveSettings();
+            });
+        }
 
         // 允许长按拖拽复选框
         document.getElementById('enableDragging').addEventListener('change', (e) => {
@@ -428,8 +431,11 @@ class SettingsManager {
         // 更新语言选择器
         document.getElementById('languageSelect').value = i18n.currentLanguage;
 
-        // 更新进度条位置选择
-        document.getElementById('timelinePosition').value = this.settings.timelinePosition;
+        // 更新进度条位置选择（仅 options 页保留）
+        const timelinePositionSelect = document.getElementById('timelinePosition');
+        if (timelinePositionSelect) {
+            timelinePositionSelect.value = this.settings.timelinePosition;
+        }
 
         // 更新允许长按拖拽复选框
         document.getElementById('enableDragging').checked = this.settings.enableLongPressDrag;

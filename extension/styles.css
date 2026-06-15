@@ -49,14 +49,27 @@
   --timeline-grok-content-max-width: 85rem;
 }
 
-/* 宽度限制 */
-article.text-token-text-primary div div[tabindex] {
+/* ChatGPT 对话宽度 */
+html[data-timeline-site="chatgpt"] {
   --thread-content-max-width: var(--timeline-chatgpt-html-content-max-width);
 }
 
-/* Codex 任务页宽度（对应 xl:max-w-[48rem]） */
+html[data-timeline-site="chatgpt"] main [class*="max-w-(--thread-content-max-width)"],
+html[data-timeline-site="chatgpt"] main [class*="--thread-content-max-width"],
+article.text-token-text-primary div div[tabindex] {
+  --thread-content-max-width: var(--timeline-chatgpt-html-content-max-width) !important;
+}
+
+html[data-timeline-site="chatgpt"] main [class*="max-w-(--thread-content-max-width)"],
+html[data-timeline-site="chatgpt"] main [class*="--thread-content-max-width"][class*="max-w-"] {
+  max-width: var(--timeline-chatgpt-html-content-max-width) !important;
+}
+
+/* Codex 任务页宽度（兼容 @container/main 与 xl:max-w-[48rem]） */
 @media (min-width: 1280px) {
-  div[class~="@container"][class*="xl:max-w-[48rem]"] {
+  html[data-timeline-site="chatgpt"] div[class*="@container"][class*="max-w-[48rem]"],
+  html[data-timeline-site="chatgpt"] div[class*="@container"][class*="max-w-3xl"],
+  html[data-timeline-site="chatgpt"] div[class*="xl:max-w-[48rem]"] {
     max-width: var(--timeline-task-page-max-width) !important;
   }
 }
