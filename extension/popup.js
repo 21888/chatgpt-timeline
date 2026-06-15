@@ -24,9 +24,9 @@ class SettingsManager {
         this.defaultSettings = {
             timelinePosition: 'right',
             enableDragging: true,
-            enableTOC: false,
+            enableTOC: true,
             tocWidth: 280,
-            tocPosition: 'left',
+            tocPosition: 'right',
             enableLongPressDrag: true,
             enableChatGPTTimeline: true,
             enableGeminiTimeline: true,
@@ -505,7 +505,7 @@ class SettingsManager {
 
         if (tocEnabled) {
             tocOptions.style.display = 'block';
-            tocPositionOptions.style.display = 'block';
+            tocPositionOptions.style.display = 'none';
         } else {
             tocOptions.style.display = 'none';
             tocPositionOptions.style.display = 'none';

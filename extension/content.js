@@ -6,6 +6,8 @@ const DOUBAO_PADDING_MIN = 0;
 const DOUBAO_PADDING_MAX = 60;
 const DEFAULT_DOUBAO_PADDING = 5;
 const DEFAULT_DOUBAO_WIDTH = DOUBAO_PADDING_MAX + DOUBAO_PADDING_MIN - DEFAULT_DOUBAO_PADDING;
+const TOC_POSITION_STORAGE_KEY = 'chatgptTimelineTOCPosition';
+const TOC_STYLE_VERSION = 'deepseek-style-v1';
 
 function migrateDeepseekWidthSetting(settings) {
     if (!settings) return { settings, migrated: false };
@@ -23,7 +25,7 @@ const DEFAULT_SETTINGS = {
     enableLongPressDrag: true,
     enableTOC: true,
     tocWidth: 280,
-    tocPosition: 'left',
+    tocPosition: 'right',
     enableChatGPTTimeline: true,
     enableGeminiTimeline: true,
     enableClaudeTimeline: true,
@@ -43,12 +45,15 @@ const SITE_CONFIGS = {
         id: 'chatgpt',
         hostMatches: ['chatgpt.com', 'chat.openai.com'],
         pathPrefixes: ['/c/', '/g/'],
-        userTurnSelector: 'article[data-turn="user"]',
-        allTurnSelector: 'article[data-turn-id]',
-        assistantTurnSelector: 'article[data-turn="assistant"]',
-        userTextSelector: null,
-        assistantTextSelector: null,
+        userTurnSelector: 'article[data-turn="user"], [data-message-author-role="user"]',
+        allTurnSelector: 'article[data-turn-id], article[data-turn], [data-testid^="conversation-turn-"], [data-message-author-role]',
+        assistantTurnSelector: 'article[data-turn="assistant"], [data-message-author-role="assistant"]',
+        userTextSelector: '[data-message-author-role="user"], [data-testid="user-message"], .whitespace-pre-wrap, .markdown',
+        assistantTextSelector: '[data-message-author-role="assistant"], .markdown, [data-testid*="assistant"]',
         conversationRootSelectors: [
+            'main [data-message-author-role]',
+            '[data-message-author-role="user"]',
+            '[data-testid^="conversation-turn-"]',
             'article[data-turn-id]',
             '[data-testid="conversation-turn"]',
             '.conversation-turn'
@@ -192,18 +197,181 @@ function isSupportedConversationUrl(url) {
     }
 }
 
-function getFirstTurnElementForSite() {
-    const config = getSiteConfig();
-    const allSelector = config.allTurnSelector;
-    const userSelector = config.userTurnSelector;
-    return (allSelector ? document.querySelector(allSelector) : null) ||
-           (userSelector ? document.querySelector(userSelector) : null);
+function querySelectorSafe(root, selector) {
+    if (!root || !selector) return null;
+    try {
+        return root.querySelector(selector);
+    } catch {
+        return null;
+    }
 }
 
-function getAllTurnElementsForSite() {
-    const config = getSiteConfig();
+function querySelectorAllSafe(root, selector) {
+    if (!root || !selector) return [];
+    try {
+        return Array.from(root.querySelectorAll(selector));
+    } catch {
+        return [];
+    }
+}
+
+function uniqueElements(elements) {
+    const seen = new Set();
+    const result = [];
+    elements.forEach(element => {
+        if (element && element.nodeType === Node.ELEMENT_NODE && !seen.has(element)) {
+            seen.add(element);
+            result.push(element);
+        }
+    });
+    return result;
+}
+
+function getChatGPTTurnRoot(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return null;
+    const containedMessage = element.matches?.('[data-message-id]')
+        ? element
+        : querySelectorSafe(element, '[data-message-id]');
+    if (containedMessage &&
+        (containedMessage.matches?.('[data-message-author-role]') ||
+         querySelectorSafe(containedMessage, '[data-message-author-role]'))) {
+        return containedMessage;
+    }
+    return element.closest('article[data-turn-id], article[data-turn], [data-testid^="conversation-turn-"], [data-testid="conversation-turn"], [data-turn-id], [data-message-id]') || element;
+}
+
+function getChatGPTRoleElement(turnElement, role) {
+    if (!turnElement || !role) return null;
+    const legacyTurn = turnElement.getAttribute?.('data-turn');
+    if (legacyTurn === role) return turnElement;
+    if (turnElement.matches?.(`[data-message-author-role="${role}"]`)) return turnElement;
+    return querySelectorSafe(turnElement, `[data-message-author-role="${role}"]`);
+}
+
+function isChatGPTTurnForRole(turnElement, role) {
+    return Boolean(getChatGPTRoleElement(turnElement, role));
+}
+
+function getChatGPTAllTurnElements(root = document) {
+    const candidates = querySelectorAllSafe(
+        root,
+        'article[data-turn-id], article[data-turn], [data-testid^="conversation-turn-"], [data-testid="conversation-turn"], [data-message-id], [data-message-author-role]'
+    );
+    return uniqueElements(candidates.map(getChatGPTTurnRoot)).filter(turn =>
+        isChatGPTTurnForRole(turn, 'user') || isChatGPTTurnForRole(turn, 'assistant')
+    );
+}
+
+function getChatGPTUserTurnElements(root = document) {
+    const candidates = querySelectorAllSafe(
+        root,
+        'article[data-turn="user"], [data-message-author-role="user"], [data-message-id], [data-testid^="conversation-turn-"], [data-testid="conversation-turn"]'
+    );
+    return uniqueElements(candidates.map(getChatGPTTurnRoot)).filter(turn => isChatGPTTurnForRole(turn, 'user'));
+}
+
+function getFirstTurnElementForSite(root = document, siteType = getSiteType()) {
+    if (siteType === 'chatgpt') {
+        return getChatGPTAllTurnElements(root)[0] || getChatGPTUserTurnElements(root)[0] || null;
+    }
+
+    const config = getSiteConfig(siteType);
+    const allSelector = config.allTurnSelector;
+    const userSelector = config.userTurnSelector;
+    return (allSelector ? querySelectorSafe(root, allSelector) : null) ||
+           (userSelector ? querySelectorSafe(root, userSelector) : null);
+}
+
+function getAllTurnElementsForSite(root = document, siteType = getSiteType()) {
+    if (siteType === 'chatgpt') {
+        return getChatGPTAllTurnElements(root);
+    }
+
+    const config = getSiteConfig(siteType);
     if (!config.allTurnSelector) return [];
-    return Array.from(document.querySelectorAll(config.allTurnSelector));
+    return querySelectorAllSafe(root, config.allTurnSelector);
+}
+
+function getCommonAncestor(first, second) {
+    if (!first || !second) return first || second || null;
+    const ancestors = new Set();
+    let node = first;
+    while (node) {
+        ancestors.add(node);
+        node = node.parentElement;
+    }
+    node = second;
+    while (node) {
+        if (ancestors.has(node)) return node;
+        node = node.parentElement;
+    }
+    return document.body || document.documentElement;
+}
+
+function getChatGPTConversationContainer(root = document) {
+    const turns = getChatGPTAllTurnElements(root);
+    if (turns.length === 0) return null;
+
+    const first = turns[0];
+    const last = turns[turns.length - 1];
+    const main = first.closest?.('main, [role="main"]');
+    if (main && turns.every(turn => main.contains(turn))) {
+        return main;
+    }
+
+    let common = getCommonAncestor(first, last);
+    while (common && common.nodeType === Node.ELEMENT_NODE && common !== document.body) {
+        const userCount = getChatGPTUserTurnElements(common).length;
+        if (userCount >= Math.min(2, getChatGPTUserTurnElements(root).length || 1)) {
+            return common;
+        }
+        common = common.parentElement;
+    }
+
+    return first.closest?.('main, [role="main"]') ||
+           first.parentElement ||
+           first ||
+           document.body;
+}
+
+function getConversationContainerForSite(firstTurn, siteType = getSiteType()) {
+    if (siteType === 'chatgpt') {
+        return getChatGPTConversationContainer(document) ||
+               firstTurn?.closest?.('main, [role="main"]') ||
+               firstTurn?.parentElement ||
+               firstTurn ||
+               document.body;
+    }
+
+    return firstTurn?.parentElement || firstTurn || document.body;
+}
+
+function clampNumber(value, min, max, fallback) {
+    const parsed = Number.parseFloat(value);
+    const normalized = Number.isFinite(parsed) ? parsed : fallback;
+    return Math.max(min, Math.min(max, normalized));
+}
+
+function getRootScrollElement() {
+    return document.scrollingElement || document.documentElement || document.body;
+}
+
+function isRootScrollElement(element) {
+    return element === document.scrollingElement ||
+           element === document.documentElement ||
+           element === document.body;
+}
+
+function canScrollVertically(element) {
+    if (!element) return false;
+    return (element.scrollHeight || 0) > (element.clientHeight || 0) + 1;
+}
+
+function isScrollableElement(element) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+    if (isRootScrollElement(element)) return canScrollVertically(element);
+    const style = window.getComputedStyle(element);
+    return /(auto|scroll|overlay)/.test(style.overflowY || '') && canScrollVertically(element);
 }
 
 class TimelineManager {
@@ -402,10 +570,18 @@ class TimelineManager {
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             console.log(`Finding critical elements, attempt ${attempt}/${maxRetries}`);
+            firstTurn = getFirstTurnElementForSite(document, this.siteType);
+            if (firstTurn) {
+                console.log(`Found first ${this.siteType} turn with site-specific selectors`, firstTurn);
+            }
 
             // Try multiple selectors for conversation turns (ChatGPT may have changed their DOM structure)
             const possibleSelectors = [
                 ...(siteConfig.conversationRootSelectors || []),
+                'main [data-message-author-role]',
+                '[data-message-author-role="user"]',
+                '[data-message-author-role="assistant"]',
+                '[data-testid^="conversation-turn-"]',
                 'article[data-turn-id]',
                 '[data-testid="conversation-turn"]',
                 '.conversation-turn',
@@ -427,15 +603,15 @@ class TimelineManager {
                 'main div[data-testid*="content"]',
                 // Additional ChatGPT-specific selectors
                 '[data-testid*="thread"]',
-                '[class*="thread"]',
-                '[data-testid*="history"]',
-                '[class*="history"]'
+                '[class*="thread"]'
             ];
-            for (const selector of possibleSelectors) {
-                firstTurn = document.querySelector(selector);
-                if (firstTurn) {
-                    console.log(`Found conversation element with selector: ${selector}`, firstTurn);
-                    break;
+            if (!firstTurn) {
+                for (const selector of possibleSelectors) {
+                    firstTurn = querySelectorSafe(document, selector);
+                    if (firstTurn) {
+                        console.log(`Found conversation element with selector: ${selector}`, firstTurn);
+                        break;
+                    }
                 }
             }
 
@@ -500,10 +676,8 @@ class TimelineManager {
                        document.body;
         }
 
-        const turnContainer = this.getTurnContainer(firstTurn);
-
         // Ensure conversationContainer is always a valid DOM element
-        this.conversationContainer = turnContainer.parentElement || turnContainer;
+        this.conversationContainer = getConversationContainerForSite(firstTurn, this.siteType);
 
         // Final fallback to ensure we always have a valid container
         if (!this.conversationContainer || this.conversationContainer.nodeType !== Node.ELEMENT_NODE) {
@@ -516,35 +690,26 @@ class TimelineManager {
         
         console.log('conversationContainer set to:', this.conversationContainer?.tagName || this.conversationContainer);
 
-        // Try to find the scroll container by walking up the DOM tree
-        let parent = this.conversationContainer;
-        while (parent && parent !== document.body) {
-            const style = window.getComputedStyle(parent);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                this.scrollContainer = parent;
-                console.log('Found scroll container:', this.scrollContainer);
-                break;
-            }
-            parent = parent.parentElement;
+        this.scrollContainer = this.findScrollContainer(this.conversationContainer);
+        if (this.scrollContainer) {
+            console.log('Found scroll container:', this.scrollContainer);
         }
 
         // More aggressive fallback for scroll container
         if (!this.scrollContainer) {
             const possibleScrollContainers = [
-                document.querySelector('main'),
-                document.querySelector('[role="main"]'),
-                document.querySelector('#chat-history'),
-                document.querySelector('.chat-history-scroll-container'),
-                document.querySelector('.chat-history'),
-                document.querySelector('.conversation-container'),
-                document.querySelector('[class*="scroll"]'),
-                document.querySelector('[class*="container"]'),
-                document.scrollingElement || document.documentElement,
+                querySelectorSafe(document, 'main'),
+                querySelectorSafe(document, '[role="main"]'),
+                querySelectorSafe(document, '#chat-history'),
+                querySelectorSafe(document, '.chat-history-scroll-container'),
+                querySelectorSafe(document, '.conversation-container'),
+                querySelectorSafe(document, '[class*="scroll"]'),
+                getRootScrollElement(),
                 document.body
             ];
 
             for (const container of possibleScrollContainers) {
-                if (container) {
+                if (container && (isScrollableElement(container) || isRootScrollElement(container))) {
                     this.scrollContainer = container;
                     console.log('Using fallback scroll container:', this.scrollContainer);
                     break;
@@ -554,7 +719,7 @@ class TimelineManager {
 
         // Final fallback - use document.body if nothing else works
         if (!this.scrollContainer) {
-            this.scrollContainer = document.body;
+            this.scrollContainer = getRootScrollElement() || document.body;
             console.warn('Using document.body as final fallback scroll container');
         }
 
@@ -575,6 +740,23 @@ class TimelineManager {
         }
 
         return true; // Always return true now that we have fallbacks
+    }
+
+    findScrollContainer(anchor) {
+        let parent = anchor;
+        while (parent && parent !== document.body) {
+            if (isScrollableElement(parent)) {
+                return parent;
+            }
+            parent = parent.parentElement;
+        }
+
+        const root = getRootScrollElement();
+        if (root && isScrollableElement(root)) {
+            return root;
+        }
+
+        return root || document.body;
     }
     
     async injectTimelineUI() {
@@ -634,6 +816,8 @@ class TimelineManager {
             } else {
                 console.log('Using existing timeline bar');
             }
+
+            this.applyMergedNavigationMode(timelineBar);
             
             this.ui.timelineBar = timelineBar;
             
@@ -815,6 +999,9 @@ class TimelineManager {
 
     getTurnContainer(turnElement) {
         if (!turnElement) return null;
+        if (this.siteType === 'chatgpt') {
+            return getChatGPTTurnRoot(turnElement) || turnElement;
+        }
         if (this.siteType === 'gemini') {
             return turnElement.closest('div.conversation-container') || turnElement;
         }
@@ -823,6 +1010,9 @@ class TimelineManager {
 
     getUserTurnElements() {
         if (!this.conversationContainer) return [];
+        if (this.siteType === 'chatgpt') {
+            return getChatGPTUserTurnElements(this.conversationContainer);
+        }
         if (this.siteType === 'gemini') {
             const nodes = Array.from(this.conversationContainer.querySelectorAll('user-query'));
             return nodes.filter(node => node.querySelector('.query-text') || (node.textContent || '').trim().length > 0);
@@ -833,20 +1023,33 @@ class TimelineManager {
         }
         const siteConfig = getSiteConfig(this.siteType);
         if (siteConfig?.userTurnSelector) {
-            return Array.from(this.conversationContainer.querySelectorAll(siteConfig.userTurnSelector));
+            return querySelectorAllSafe(this.conversationContainer, siteConfig.userTurnSelector);
         }
-        return Array.from(this.conversationContainer.querySelectorAll('article[data-turn="user"]'));
+        return querySelectorAllSafe(this.conversationContainer, 'article[data-turn="user"]');
     }
 
     getAllTurnElements() {
         if (!this.conversationContainer) return [];
+        if (this.siteType === 'chatgpt') {
+            return getChatGPTAllTurnElements(this.conversationContainer);
+        }
         const siteConfig = getSiteConfig(this.siteType);
         if (!siteConfig?.allTurnSelector) return [];
-        return Array.from(this.conversationContainer.querySelectorAll(siteConfig.allTurnSelector));
+        return querySelectorAllSafe(this.conversationContainer, siteConfig.allTurnSelector);
     }
 
     getTurnId(turnElement, index) {
         if (!turnElement) return `turn-${index}`;
+        if (this.siteType === 'chatgpt') {
+            const root = getChatGPTTurnRoot(turnElement) || turnElement;
+            return root.dataset?.turnId ||
+                   root.getAttribute?.('data-turn-id') ||
+                   root.getAttribute?.('data-message-id') ||
+                   root.getAttribute?.('data-testid') ||
+                   turnElement.getAttribute?.('data-message-id') ||
+                   turnElement.id ||
+                   `chatgpt-turn-${index}`;
+        }
         if (this.siteType === 'gemini') {
             const container = this.getTurnContainer(turnElement);
             return container?.id || turnElement.id || `gemini-turn-${index}`;
@@ -861,6 +1064,13 @@ class TimelineManager {
 
     getUserContentElement(turnElement) {
         if (!turnElement) return null;
+        if (this.siteType === 'chatgpt') {
+            const roleElement = getChatGPTRoleElement(turnElement, 'user');
+            const siteConfig = getSiteConfig(this.siteType);
+            return (roleElement && querySelectorSafe(roleElement, siteConfig.userTextSelector)) ||
+                   roleElement ||
+                   turnElement;
+        }
         if (this.siteType === 'gemini') {
             const container = this.getTurnContainer(turnElement);
             return container?.querySelector('user-query .query-text') ||
@@ -894,20 +1104,35 @@ class TimelineManager {
         }
         // Find the corresponding ChatGPT reply for this user message
         const allTurns = this.getAllTurnElements();
-        const currentIndex = allTurns.indexOf(userElement);
-        const siteConfig = getSiteConfig(this.siteType);
+        const currentRoot = this.getTurnContainer(userElement) || userElement;
+        const currentIndex = allTurns.findIndex(turn =>
+            turn === currentRoot ||
+            turn === userElement ||
+            turn.contains?.(userElement) ||
+            userElement.contains?.(turn)
+        );
         const isAssistantTurn = (turn) => {
             if (!turn) return false;
+            if (this.siteType === 'chatgpt') return isChatGPTTurnForRole(turn, 'assistant');
+            const siteConfig = getSiteConfig(this.siteType);
             if (turn.dataset?.turn === 'assistant') return true;
             if (siteConfig?.assistantTurnSelector && turn.matches(siteConfig.assistantTurnSelector)) return true;
             return false;
         };
 
         // Look for the next assistant turn (ChatGPT's reply) after this user turn
-        for (let i = currentIndex + 1; i < allTurns.length; i++) {
+        for (let i = Math.max(0, currentIndex + 1); i < allTurns.length; i++) {
             const turn = allTurns[i];
+            if (currentIndex < 0 &&
+                currentRoot.compareDocumentPosition &&
+                !(currentRoot.compareDocumentPosition(turn) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                continue;
+            }
             if (isAssistantTurn(turn)) {
-                const replyText = this.normalizeText(turn.textContent || '');
+                const replyElement = this.siteType === 'chatgpt'
+                    ? (getChatGPTRoleElement(turn, 'assistant') || turn)
+                    : turn;
+                const replyText = this.normalizeText(replyElement.textContent || '');
                 // Return the reply if it's not empty and not just the incomplete "哈哈，我当然不"
                 if (replyText && replyText.length > 10) { // 确保回复有足够的内容
                     return replyText;
@@ -1058,8 +1283,7 @@ class TimelineManager {
     ensureContainersUpToDate() {
         const first = getFirstTurnElementForSite();
         if (!first) return;
-        const turnContainer = this.getTurnContainer(first);
-        const newConv = turnContainer?.parentElement || turnContainer;
+        const newConv = getConversationContainerForSite(first, this.siteType);
         
         // Validate that newConv is a valid DOM element before using it
         if (newConv && 
@@ -1087,17 +1311,7 @@ class TimelineManager {
 
         this.conversationContainer = newConv;
 
-        // Find (or re-find) scroll container
-        let parent = newConv;
-        let newScroll = null;
-        while (parent && parent !== document.body) {
-            const style = window.getComputedStyle(parent);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                newScroll = parent; break;
-            }
-            parent = parent.parentElement;
-        }
-        if (!newScroll) newScroll = document.scrollingElement || document.documentElement || document.body;
+        const newScroll = this.findScrollContainer(newConv);
         this.scrollContainer = newScroll;
         // Reattach scroll listener
         this.onScroll = () => this.scheduleScrollSync();
@@ -1372,7 +1586,16 @@ class TimelineManager {
     }
     
     smoothScrollTo(targetElement, duration = 600) {
-        const scrollContainer = this.scrollContainer || document.scrollingElement || document.documentElement || document.body;
+        if (!targetElement) return;
+        let scrollContainer = this.scrollContainer || getRootScrollElement() || document.body;
+        if (!isRootScrollElement(scrollContainer) && !scrollContainer.contains?.(targetElement)) {
+            scrollContainer = this.findScrollContainer(targetElement);
+            this.scrollContainer = scrollContainer;
+        }
+        if (!isRootScrollElement(scrollContainer) && !canScrollVertically(scrollContainer)) {
+            scrollContainer = this.findScrollContainer(targetElement);
+            this.scrollContainer = scrollContainer;
+        }
         if (!scrollContainer) return;
         const isRootScroll = scrollContainer === document.body ||
             scrollContainer === document.documentElement ||
@@ -1384,7 +1607,21 @@ class TimelineManager {
         const targetPosition = isRootScroll
             ? (targetRect.top + startPosition)
             : (targetRect.top - scrollContainer.getBoundingClientRect().top + scrollContainer.scrollTop);
-        const distance = targetPosition - startPosition;
+        const maxScroll = isRootScroll
+            ? Math.max(0, (document.documentElement.scrollHeight || document.body.scrollHeight || 0) - window.innerHeight)
+            : Math.max(0, (scrollContainer.scrollHeight || 0) - (scrollContainer.clientHeight || 0));
+        const clampedTargetPosition = Math.max(0, Math.min(maxScroll, targetPosition));
+
+        if (!Number.isFinite(clampedTargetPosition) || maxScroll <= 0) {
+            try {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+            } catch {
+                targetElement.scrollIntoView();
+            }
+            return;
+        }
+
+        const distance = clampedTargetPosition - startPosition;
         let startTime = null;
 
         const animation = (currentTime) => {
@@ -1401,11 +1638,12 @@ class TimelineManager {
                 requestAnimationFrame(animation);
             } else {
                 if (isRootScroll) {
-                    window.scrollTo(0, targetPosition);
+                    window.scrollTo(0, clampedTargetPosition);
                 } else {
-                    scrollContainer.scrollTop = targetPosition;
+                    scrollContainer.scrollTop = clampedTargetPosition;
                 }
                 this.isScrolling = false;
+                this.scheduleScrollSync();
             }
         };
         requestAnimationFrame(animation);
@@ -1541,13 +1779,30 @@ class TimelineManager {
             }
 
             const allTurns = this.getAllTurnElements();
-            const currentIndex = allTurns.indexOf(userElement);
+            const currentRoot = this.getTurnContainer(userElement) || userElement;
+            const currentIndex = allTurns.findIndex(turn =>
+                turn === currentRoot ||
+                turn === userElement ||
+                turn.contains?.(userElement) ||
+                userElement.contains?.(turn)
+            );
 
             // Look for the next assistant turn (ChatGPT's reply) after this user turn
-            for (let i = currentIndex + 1; i < allTurns.length; i++) {
+            for (let i = Math.max(0, currentIndex + 1); i < allTurns.length; i++) {
                 const turn = allTurns[i];
-                if (turn.dataset.turn === 'assistant') {
-                    const replyText = this.getFullTextContent(turn);
+                if (currentIndex < 0 &&
+                    currentRoot.compareDocumentPosition &&
+                    !(currentRoot.compareDocumentPosition(turn) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+                    continue;
+                }
+                const isAssistant = this.siteType === 'chatgpt'
+                    ? isChatGPTTurnForRole(turn, 'assistant')
+                    : turn.dataset.turn === 'assistant';
+                if (isAssistant) {
+                    const replyElement = this.siteType === 'chatgpt'
+                        ? (getChatGPTRoleElement(turn, 'assistant') || turn)
+                        : turn;
+                    const replyText = this.getFullTextContent(replyElement);
                     // Return the reply if it's not empty and has sufficient content
                     if (replyText && replyText.length > 10) {
                         return replyText;
@@ -2757,6 +3012,14 @@ class TimelineManager {
                 timelineBar.classList.add('position-right');
                 break;
         }
+        this.applyMergedNavigationMode(timelineBar);
+    }
+
+    applyMergedNavigationMode(timelineBar = this.ui.timelineBar) {
+        if (!timelineBar) return;
+        const merged = this.settings.enableTOC !== false;
+        timelineBar.classList.toggle('merged-navigation-source', merged);
+        timelineBar.setAttribute('aria-hidden', merged ? 'true' : 'false');
     }
 
     addDragHandle(timelineBar) {
@@ -2772,36 +3035,25 @@ class TimelineManager {
         this.dragHandle = dragHandle;
     }
 
-    // Table of Contents (TOC) Navigation
+    // Merged side navigation
     createTOC() {
         if (!this.settings.enableTOC) return;
 
         let tocContainer = document.querySelector('.timeline-toc');
         if (!tocContainer) {
             tocContainer = document.createElement('div');
-            tocContainer.className = 'timeline-toc expanded'; // Always start expanded and visible
+            tocContainer.className = 'timeline-toc merged-side-navigation';
+            tocContainer.setAttribute('aria-label', '合并导航');
             document.body.appendChild(tocContainer);
-
-            // Add drag handle for dragging the entire panel
-            this.addTOCDragHandle(tocContainer);
-
-            // Add long press drag functionality to the entire TOC container
-            this.addTOCLongPressDrag(tocContainer);
-
-            // Add click handler for close button and expand functionality
-            tocContainer.addEventListener('click', (e) => {
-                const closeButton = e.target.closest('.toc-close');
-                const expandButton = e.target.closest('.toc-expand');
-                if (closeButton) {
-                    this.collapseTOC();
-                } else if (expandButton) {
-                    this.expandTOC();
-                }
-            });
         }
 
+        tocContainer.classList.add('merged-side-navigation');
+        tocContainer.classList.remove('expanded', 'collapsed', 'dragging', 'long-press-ready', 'near-boundary');
+        tocContainer.dataset.hasCustomPosition = 'false';
+        tocContainer.querySelectorAll('.toc-drag-handle').forEach(handle => handle.remove());
+
         this.updateTOC();
-        this.restoreTOCPosition(); // Restore saved position
+        this.applyTOCPosition(tocContainer, true);
 
         // Ensure TOC is visible after creation
         this.ensureTOCVisible();
@@ -2847,7 +3099,7 @@ class TimelineManager {
         const header = document.createElement('div');
         header.className = 'toc-header';
         header.innerHTML = `
-            <h3>目录导航</h3>
+            <h3>合并导航</h3>
             <div class="toc-close"></div>
         `;
         tocContainer.appendChild(header);
@@ -2859,7 +3111,7 @@ class TimelineManager {
             emptyState.className = 'toc-empty-state';
             emptyState.innerHTML = `
                 <div class="empty-title">暂无对话内容</div>
-                <div class="empty-subtitle">开始与AI对话后，<br>目录导航将自动显示</div>
+                <div class="empty-subtitle">开始与AI对话后，<br>合并导航将自动显示</div>
             `;
             tocContainer.appendChild(emptyState);
         } else {
@@ -2921,36 +3173,36 @@ class TimelineManager {
     }
 
     updateTOCIncrementally(tocContainer) {
+        tocContainer.classList.add('merged-side-navigation');
+        tocContainer.classList.remove('expanded', 'collapsed', 'dragging', 'long-press-ready', 'near-boundary');
+        tocContainer.dataset.hasCustomPosition = 'false';
+        tocContainer.querySelectorAll('.toc-drag-handle, .toc-header').forEach(node => node.remove());
+
         const isCollapsed = tocContainer.classList.contains('collapsed');
         const wasCollapsed = tocContainer.dataset.wasCollapsed === 'true';
 
         // Only rebuild header if state changed or it's missing
         const existingHeader = tocContainer.querySelector('.toc-header');
-        if (!existingHeader || isCollapsed !== wasCollapsed) {
+        if (isCollapsed && (!existingHeader || isCollapsed !== wasCollapsed)) {
             // Clear and rebuild only when necessary
             tocContainer.innerHTML = '';
 
             const header = document.createElement('div');
             header.className = 'toc-header';
 
-            if (isCollapsed) {
-                header.innerHTML = `
-                    <h3>目录</h3>
-                    <div class="toc-expand"></div>
-                `;
-                // Add expand functionality
-                const expandButton = header.querySelector('.toc-expand');
-                expandButton.addEventListener('click', () => {
-                    this.expandTOC();
-                });
-            } else {
-                header.innerHTML = `
-                    <h3>目录导航</h3>
-                    <div class="toc-close"></div>
-                `;
-            }
+            header.innerHTML = `
+                <h3>导航</h3>
+                <div class="toc-expand"></div>
+            `;
+            // Add expand functionality
+            const expandButton = header.querySelector('.toc-expand');
+            expandButton.addEventListener('click', () => {
+                this.expandTOC();
+            });
 
             tocContainer.appendChild(header);
+        } else if (!isCollapsed && existingHeader) {
+            existingHeader.remove();
         }
 
         // Update collapsed state tracking
@@ -3005,7 +3257,7 @@ class TimelineManager {
             emptyState.className = 'toc-empty-state';
             emptyState.innerHTML = `
                 <div class="empty-title">暂无对话内容</div>
-                <div class="empty-subtitle">开始与AI对话后，<br>目录导航将自动显示</div>
+                <div class="empty-subtitle">开始与AI对话后，<br>合并导航将自动显示</div>
             `;
             tocContainer.appendChild(emptyState);
         }
@@ -3024,40 +3276,35 @@ class TimelineManager {
         }
 
         // Clear existing items
-        list.innerHTML = '';
+        list.textContent = '';
 
         // Add current markers
         this.markers.forEach((marker, index) => {
             const markerId = marker.id;
-            const item = document.createElement('div');
+            const item = document.createElement('button');
+            item.type = 'button';
             item.className = `toc-item${markerId === this.activeTurnId ? ' active' : ''}`;
             item.dataset.turnId = markerId;
+            item.setAttribute('aria-label', `跳转到第 ${index + 1} 条：${marker.summary || ''}`);
 
-            // Show user's message as title and ChatGPT's reply as content
-            const userText = this.truncateText(marker.summary, 25);
-            const chatgptText = marker.chatgptReply ? this.truncateText(marker.chatgptReply, 35) : '';
+            const indexEl = document.createElement('span');
+            indexEl.className = 'toc-index';
+            indexEl.textContent = String(index + 1);
+            indexEl.setAttribute('aria-hidden', 'true');
 
-            item.innerHTML = `
-                <span class="toc-index">${index + 1}</span>
-                <div class="toc-content">
-                    <div class="toc-user-message">${userText}</div>
-                    ${chatgptText ? `<div class="toc-chatgpt-reply">${chatgptText}</div>` : ''}
-                </div>
-                <button class="toc-copy-btn" title="复制QA对话" aria-label="复制QA对话">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="m5 15-4-4 4-4"></path>
-                        <path d="M5 15H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"></path>
-                    </svg>
-                </button>
-            `;
+            const content = document.createElement('span');
+            content.className = 'toc-content';
+
+            const userMessage = document.createElement('span');
+            userMessage.className = 'toc-user-message';
+            userMessage.textContent = this.truncateText(marker.summary || `第 ${index + 1} 条对话`, 42);
+
+            content.appendChild(userMessage);
+            item.appendChild(indexEl);
+            item.appendChild(content);
 
             // Use debounced click handler to prevent rapid-fire updates
             const debouncedClick = this.debounce((e) => {
-                // Don't navigate if clicking on copy button
-                if (e.target.closest('.toc-copy-btn')) {
-                    return;
-                }
                 e.stopPropagation();
                 const targetElement = this.markerById.get(markerId) || marker.element;
                 if (targetElement) {
@@ -3070,16 +3317,6 @@ class TimelineManager {
             }, 100);
 
             item.addEventListener('click', debouncedClick);
-
-            // Add copy button functionality
-            const copyBtn = item.querySelector('.toc-copy-btn');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const latestMarker = this.markers.find(current => current.id === markerId) || marker;
-                    this.copyQAText(latestMarker);
-                });
-            }
 
             list.appendChild(item);
         });
@@ -3099,53 +3336,20 @@ class TimelineManager {
     }
 
     applyTOCPosition(tocContainer, forceDefault = false) {
-        const position = this.settings.tocPosition;
-        const width = this.settings.tocWidth;
+        const width = clampNumber(this.settings.tocWidth, 260, 360, 300);
 
-        // Check if TOC has custom position saved (not default position)
-        const hasCustomPosition = this.hasTOCCustomPosition(tocContainer);
-
-        // For collapsed state, use fixed positioning
-        if (tocContainer.classList.contains('collapsed')) {
-            if (position === 'left') {
-                tocContainer.style.left = '80px';
-                tocContainer.style.right = 'auto';
-            } else {
-                tocContainer.style.right = '80px';
-                tocContainer.style.left = 'auto';
-            }
-            return;
-        }
-
-        // For expanded state, use the configured width
-        tocContainer.style.width = `${width}px`;
-
-        // Only apply default position if forced or no custom position exists
-        if (forceDefault || !hasCustomPosition) {
-            if (position === 'left') {
-                tocContainer.style.left = '0px';
-                tocContainer.style.right = 'auto';
-            } else {
-                tocContainer.style.right = '0px';
-                tocContainer.style.left = 'auto';
-            }
-        }
+        tocContainer.style.setProperty('--timeline-toc-panel-width', `${width}px`);
+        tocContainer.style.width = '';
+        tocContainer.style.left = 'auto';
+        tocContainer.style.right = '16px';
+        tocContainer.style.top = 'max(120px, calc(50vh - 158px))';
+        tocContainer.dataset.hasCustomPosition = 'false';
     }
 
     // Check if TOC has custom position (not the default position)
     hasTOCCustomPosition(tocContainer) {
         if (!tocContainer) return false;
-
-        const rect = tocContainer.getBoundingClientRect();
-        const position = this.settings.tocPosition;
-
-        // Check if current position differs from default position
-        if (position === 'left') {
-            return Math.abs(rect.left - 0) > 10; // Allow 10px tolerance for floating point precision
-        } else {
-            // For right position, default is right: 0 (which means right edge at window width)
-            return Math.abs(rect.right - window.innerWidth) > 10;
-        }
+        return tocContainer.dataset.hasCustomPosition === 'true';
     }
 
     // Toggle TOC between collapsed/expanded states
@@ -3197,28 +3401,24 @@ class TimelineManager {
             dragHandle.className = 'toc-drag-handle';
             dragHandle.innerHTML = '⋮⋮';
             dragHandle.style.fontFamily = 'monospace';
-            dragHandle.title = '拖拽移动目录位置';
+            dragHandle.title = '拖拽移动合并导航';
             dragHandle.setAttribute('role', 'button');
             dragHandle.setAttribute('tabindex', '0');
-            dragHandle.setAttribute('aria-label', '拖拽移动目录导航');
+            dragHandle.setAttribute('aria-label', '拖拽移动合并导航');
             tocContainer.appendChild(dragHandle);
         }
         this.tocDragHandle = dragHandle;
 
         // Add drag event listeners with proper event handling
-        const handlePointerDown = (e) => {
+        dragHandle.onpointerdown = (e) => {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation(); // Prevent any other event handlers
             this.startTOCDrag(e);
         };
 
-        // Remove existing listeners to prevent duplicates
-        dragHandle.removeEventListener('pointerdown', handlePointerDown);
-        dragHandle.addEventListener('pointerdown', handlePointerDown, { passive: false });
-
         // Also handle touch events for mobile
-        const handleTouchStart = (e) => {
+        dragHandle.ontouchstart = (e) => {
             console.log('TOC drag handle touchstart triggered');
             e.preventDefault();
             e.stopPropagation();
@@ -3234,20 +3434,14 @@ class TimelineManager {
             this.startTOCDrag(pointerEvent);
         };
 
-        dragHandle.removeEventListener('touchstart', handleTouchStart);
-        dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
-
         // Add keyboard support
-        const handleKeyDown = (e) => {
+        dragHandle.onkeydown = (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 e.stopPropagation();
                 this.startTOCDrag(e);
             }
         };
-
-        dragHandle.removeEventListener('keydown', handleKeyDown);
-        dragHandle.addEventListener('keydown', handleKeyDown);
     }
 
     // Add long press drag functionality to the entire TOC container
@@ -3414,6 +3608,7 @@ class TimelineManager {
         tocContainer.style.left = `${newX}px`;
         tocContainer.style.right = 'auto';
         tocContainer.style.top = `${newY}px`;
+        tocContainer.dataset.hasCustomPosition = 'true';
 
         // Add visual feedback for boundary proximity
         const nearBoundary = newX < margin + 20 || newX > maxX - 20 ||
@@ -3454,84 +3649,13 @@ class TimelineManager {
         e.stopPropagation();
     }
 
-    // Save TOC position as percentage of window size
-    saveTOCPosition() {
-        try {
-            const tocContainer = document.querySelector('.timeline-toc');
-            if (!tocContainer) {
-                return;
-            }
+    // The merged navigation is fixed to the page edge and is no longer draggable.
+    saveTOCPosition() {}
 
-            const rect = tocContainer.getBoundingClientRect();
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-
-            // Convert pixel coordinates to percentage of window size
-            const position = {
-                left: (rect.left / windowWidth) * 100,
-                top: (rect.top / windowHeight) * 100,
-                width: (rect.width / windowWidth) * 100,
-                height: (rect.height / windowHeight) * 100,
-                // Store window dimensions for validation
-                windowWidth: windowWidth,
-                windowHeight: windowHeight
-            };
-
-            console.log(`[TOC Position] Saved position: ${position.left.toFixed(2)}%, ${position.top.toFixed(2)}% of window ${windowWidth}x${windowHeight}`);
-            localStorage.setItem('chatgptTimelineTOCPosition', JSON.stringify(position));
-        } catch (error) {
-            console.warn('Failed to save TOC position:', error);
-        }
-    }
-
-    // Restore TOC position from percentage coordinates
     restoreTOCPosition() {
-        try {
-            const saved = localStorage.getItem('chatgptTimelineTOCPosition');
-            if (saved) {
-                const position = JSON.parse(saved);
-                const tocContainer = document.querySelector('.timeline-toc');
-                if (tocContainer && position.left !== undefined && position.top !== undefined) {
-                    // Convert percentage back to pixels based on current window size
-                    const currentWindowWidth = window.innerWidth;
-                    const currentWindowHeight = window.innerHeight;
-
-                    // Check if window dimensions have changed significantly (>10% difference)
-                    const widthDiff = Math.abs(currentWindowWidth - (position.windowWidth || currentWindowWidth)) / currentWindowWidth;
-                    const heightDiff = Math.abs(currentWindowHeight - (position.windowHeight || currentWindowHeight)) / currentWindowHeight;
-
-                    if (widthDiff > 0.1 || heightDiff > 0.1) {
-                        console.log(`[TOC Position] Window size changed significantly (${(widthDiff * 100).toFixed(1)}% width, ${(heightDiff * 100).toFixed(1)}% height), adjusting TOC position`);
-                    }
-
-                    // Convert percentage to pixels and apply boundary constraints
-                    let left = (position.left / 100) * currentWindowWidth;
-                    let top = (position.top / 100) * currentWindowHeight;
-                    const width = (position.width / 100) * currentWindowWidth;
-                    const height = (position.height / 100) * currentWindowHeight;
-
-                    // Apply boundary constraints
-                    const margin = 10;
-                    const maxLeft = currentWindowWidth - width - margin;
-                    const maxTop = currentWindowHeight - height - margin;
-
-                    left = Math.max(margin, Math.min(left, maxLeft));
-                    top = Math.max(margin, Math.min(top, maxTop));
-
-                    tocContainer.style.left = `${left}px`;
-                    tocContainer.style.top = `${top}px`;
-                    tocContainer.style.right = 'auto';
-
-                    console.log(`[TOC Position] Restored position: ${left.toFixed(0)}px, ${top.toFixed(0)}px (${position.left.toFixed(2)}%, ${position.top.toFixed(2)}% of ${currentWindowWidth}x${currentWindowHeight})`);
-
-                    // Update stored position with current window dimensions for future use
-                    position.windowWidth = currentWindowWidth;
-                    position.windowHeight = currentWindowHeight;
-                    localStorage.setItem('chatgptTimelineTOCPosition', JSON.stringify(position));
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to restore TOC position:', error);
+        const tocContainer = document.querySelector('.timeline-toc');
+        if (tocContainer) {
+            this.applyTOCPosition(tocContainer, true);
         }
     }
 
@@ -3599,8 +3723,6 @@ class TimelineManager {
         if (!tocContainer.style.left && !tocContainer.style.right) {
             this.restoreTOCPosition();
         }
-
-        console.log('TOC visibility ensured');
     }
 
     // Update TOC item highlighting
@@ -3618,15 +3740,15 @@ class TimelineManager {
 
         // Use requestAnimationFrame for smooth highlighting updates
         requestAnimationFrame(() => {
-            // Remove all active classes
+            let activeItem = null;
             tocContainer.querySelectorAll('.toc-item').forEach(item => {
-                item.classList.remove('active');
+                const isActive = item.dataset.turnId === this.activeTurnId;
+                item.classList.toggle('active', isActive);
+                if (isActive) activeItem = item;
             });
 
-            // Add active class to current item
-            const activeItem = tocContainer.querySelector(`.toc-item[data-turn-id="${this.activeTurnId}"]`);
             if (activeItem) {
-                activeItem.classList.add('active');
+                activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             }
         });
     }
@@ -3904,8 +4026,8 @@ function setupContentChangeObserver() {
                     // Timeline exists but content changed - might need refresh
                     console.log('DOM content changed with existing timeline, checking if refresh needed');
                     // Check if the conversation structure has significantly changed
-                    const currentTurns = getAllTurnElementsForSite().length;
-                    if (currentTurns !== timelineManagerInstance.markers.length) {
+                    const currentUserTurns = timelineManagerInstance.getUserTurnElements().length;
+                    if (currentUserTurns !== timelineManagerInstance.markers.length) {
                         console.log('Conversation structure changed, refreshing timeline');
                         timelineManagerInstance.refreshContent();
                     }
@@ -3924,6 +4046,8 @@ function setupContentChangeObserver() {
             '[role="main"]',
             '#__next', // Common React app root
             '.react-scroll-to-bottom', // ChatGPT specific
+            '[data-message-author-role]',
+            '[data-testid^="conversation-turn-"]',
             'article', 
             '[data-testid="conversation-turn"]', 
             '.conversation-turn',
@@ -3936,14 +4060,14 @@ function setupContentChangeObserver() {
         
         let observerAttached = false;
         targetSelectors.forEach(selector => {
-            const element = document.querySelector(selector);
+            const element = querySelectorSafe(document, selector);
             if (element && !observerAttached) {
                 console.log(`Attaching content change observer to: ${selector}`);
                 contentChangeObserver.observe(element, {
                     childList: true,
                     subtree: true,
                     attributes: true,
-                    attributeFilter: ['data-turn-id', 'class', 'data-testid']
+                    attributeFilter: ['data-turn-id', 'data-turn', 'data-message-author-role', 'class', 'data-testid']
                 });
                 observerAttached = true;
             }
@@ -3953,10 +4077,10 @@ function setupContentChangeObserver() {
         if (!observerAttached && document.body) {
             console.log('Attaching content change observer to body as fallback');
             contentChangeObserver.observe(document.body, { 
-                childList: true, 
+                childList: true,
                 subtree: true,
                 attributes: true,
-                attributeFilter: ['data-turn-id', 'class', 'data-testid']
+                attributeFilter: ['data-turn-id', 'data-turn', 'data-message-author-role', 'class', 'data-testid']
             });
         }
     } catch (err) {
@@ -4085,11 +4209,18 @@ function hasRequiredConversationElements(forceCheck = false) {
         return conversationElementsCache;
     }
 
+    const siteType = getSiteType();
+    const firstTurnForSite = getFirstTurnElementForSite(document, siteType);
+
     // Optimized selector list - check in order of specificity and likelihood
     const siteConfig = getSiteConfig();
     const possibleSelectors = [
         siteConfig.allTurnSelector,
         siteConfig.userTurnSelector,
+        'main [data-message-author-role]',
+        '[data-message-author-role="user"]',
+        '[data-message-author-role="assistant"]',
+        '[data-testid^="conversation-turn-"]',
         'article[data-turn-id]',
         '[data-testid="conversation-turn"]',
         '.conversation-turn',
@@ -4100,17 +4231,18 @@ function hasRequiredConversationElements(forceCheck = false) {
         'user-query'
     ];
 
-    let foundElement = null;
+    let foundElement = firstTurnForSite;
     for (const selector of possibleSelectors) {
+        if (foundElement) break;
         if (!selector) continue;
-        const element = document.querySelector(selector);
+        const element = querySelectorSafe(document, selector);
         if (element) {
             foundElement = element;
             break;
         }
     }
 
-    const hasElements = Boolean(foundElement || document.querySelector('main'));
+    const hasElements = Boolean(foundElement || querySelectorSafe(document, 'main'));
 
     // Cache the result (boolean)
     conversationElementsCache = hasElements;
@@ -4231,9 +4363,11 @@ const handleScrollForInit = async () => {
 
     scrollInitAttempts++;
     const hasConversationElements = getFirstTurnElementForSite() ||
-                                   document.querySelector('[data-testid="conversation-turn"]') ||
-                                   document.querySelector('.conversation-turn') ||
-                                   document.querySelector('main');
+                                   querySelectorSafe(document, '[data-message-author-role="user"]') ||
+                                   querySelectorSafe(document, '[data-testid^="conversation-turn-"]') ||
+                                   querySelectorSafe(document, '[data-testid="conversation-turn"]') ||
+                                   querySelectorSafe(document, '.conversation-turn') ||
+                                   querySelectorSafe(document, 'main');
 
     if (hasConversationElements && scrollInitAttempts <= maxScrollInitAttempts) {
         console.log(`Scroll-triggered initialization attempt ${scrollInitAttempts}`);

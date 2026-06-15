@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Interactive navigation and layout tools for major AI chat platforms, featuring timelines, TOC, and custom width controls.",
+    "message": "Interactive navigation and layout tools for major AI chat platforms, featuring merged side navigation and custom width controls.",
     "description": "Extension description"
   },
   "popupTitle": {
@@ -60,11 +60,11 @@
     "description": "Enable long press dragging option"
   },
   "tocNavigation": {
-    "message": "Table of Contents Navigation",
+    "message": "Merged Side Navigation",
     "description": "Table of contents navigation"
   },
   "enableTOC": {
-    "message": "Enable TOC Navigation",
+    "message": "Enable Merged Side Navigation",
     "description": "Enable TOC option"
   },
   "tocWidth": {
@@ -76,11 +76,11 @@
     "description": "TOC position setting"
   },
   "tocPositionLeft": {
-    "message": "Left of Timeline",
+    "message": "Left",
     "description": "Left of timeline"
   },
   "tocPositionRight": {
-    "message": "Right of Timeline",
+    "message": "Right",
     "description": "Right of timeline"
   },
   "resetButton": {
@@ -112,7 +112,7 @@
     "description": "Drag settings section"
   },
   "dragDescription": {
-    "message": "Controls long press dragging for both timeline and table of contents navigation",
+    "message": "Controls long press dragging for the merged side navigation",
     "description": "Description for drag settings"
   },
   "pageWidthSettings": {
@@ -220,7 +220,7 @@
     "description": "Options page nav: page width"
   },
   "optionsNavToc": {
-    "message": "TOC",
+    "message": "Navigation",
     "description": "Options page nav: table of contents"
   },
   "optionsNavAdvanced": {

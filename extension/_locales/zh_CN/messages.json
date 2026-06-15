@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "AI 对话助手（时间线/目录导航/复制回复/页面宽度调整）",
+    "message": "AI 对话助手（合并导航/复制回复/页面宽度调整）",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "为 ChatGPT、Gemini、Claude、DeepSeek、豆包和 Grok 的 AI 对话页面添加时间线/目录导航/复制回复/页面宽度调整，便于快速浏览与管理聊天内容。",
+    "message": "为 ChatGPT、Gemini、Claude、DeepSeek、豆包和 Grok 的 AI 对话页面添加合并导航、复制回复和页面宽度调整，便于快速浏览与管理聊天内容。",
     "description": "Extension description"
   },
   "popupTitle": {
@@ -60,11 +60,11 @@
     "description": "Enable long press dragging option"
   },
   "tocNavigation": {
-    "message": "目录导航",
+    "message": "右侧合并导航",
     "description": "Table of contents navigation"
   },
   "enableTOC": {
-    "message": "启用目录导航",
+    "message": "启用右侧合并导航",
     "description": "Enable TOC option"
   },
   "tocWidth": {
@@ -76,11 +76,11 @@
     "description": "TOC position setting"
   },
   "tocPositionLeft": {
-    "message": "时间线左侧",
+    "message": "左侧",
     "description": "Left of timeline"
   },
   "tocPositionRight": {
-    "message": "时间线右侧",
+    "message": "右侧",
     "description": "Right of timeline"
   },
   "resetButton": {
@@ -112,7 +112,7 @@
     "description": "Drag settings section"
   },
   "dragDescription": {
-    "message": "同时控制时间线和目录导航的长按拖拽功能",
+    "message": "控制合并导航的长按拖拽功能",
     "description": "Description for drag settings"
   },
   "pageWidthSettings": {
@@ -220,7 +220,7 @@
     "description": "Options page nav: page width"
   },
   "optionsNavToc": {
-    "message": "目录",
+    "message": "导航",
     "description": "Options page nav: table of contents"
   },
   "optionsNavAdvanced": {
